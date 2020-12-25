@@ -1,6 +1,7 @@
 options(shiny.maxRequestSize = 500*1024^2)
 #library(ggplot2)
 source("./bin/report2.R",encoding = 'UTF8')
+source('./bin/archive.R',encoding = 'UTF8')
 library(shiny)
 library(officer)
 library(stringr)
@@ -12,6 +13,7 @@ library(magick)
 library(stringr)
 library(lubridate)
 library(ggplot2)
+library(RSQLite)
 temp_dir <- tempdir()
 #zipfile <- tempfile(fileext = ".zip")
 #fontname <- "Arial"
@@ -23,63 +25,40 @@ ui <- fluidPage(
         hr(),
         fluidPage(
                 tabsetPanel(
-                        tabPanel('结题报告系统',
+                        tabPanel('归档系统',
                                  br(),
                                  br(),
                                  sidebarPanel(
-                                         selectInput('input_type1','选择载体种类',
-                                                     c('过表达','干扰','基因编辑')),
-                                         selectInput('input_type2','选择业务种类',
-                                                     c('载体构建','病毒包装','载体构建和病毒包装')),
-                                         fileInput('word_file',
-                                                   label = '上传excel文件'),
+                                         selectInput('input_type1','选择归档信息种类',
+                                                     c('实验信息表')),
+                                         fileInput('excel_file',
+                                                   label = '上传excel文件',
+                                                   multiple = T),
                                          #actionButton('report_download',label = '下载结题报告'),
                                          #hr(),
-                                         actionButton('report_generate',label='点此生成报告'),
-                                         hr(),
-                                         downloadButton('download',label = '点此下载结题报告')
+                                         actionButton('archive',label='点此开始归档'),
+
                                  ),
                                  mainPanel(
                                          textOutput('Update_info'),
+                                         textOutput('file_list'),
                                          hr(),
-                                         uiOutput('pic_upload1'),
-                                         uiOutput('upload1_list'),
-                                         br(),
-                                         uiOutput('pic_upload2'),
-                                         uiOutput('upload2_list'),
-                                         hr(),
-                                         uiOutput('pic_upload3'),
-                                         uiOutput('upload3_list'),
-                                         hr(),
-                                         #img(src='tutorial.png',width=580,height=300)
-                                         #textOutput('value1')
+                                         #textOutput('feedback_info')
                                  )
                         ),
                         tabPanel('统计系统',
                                  br(),
                                  br(),
                                  sidebarPanel(
-                                         fileInput('excel_file',
-                                                   label = '上传excel文件'),
-                                         dateInput('report_date',label = '选择统计日期',value = date('2020-09-01')),
+                                         selectInput('input_type2','选择统计种类',
+                                                     c('实验信息表')),
+                                         #dateInput('report_date',label = '选择统计日期',value = date('2020-09-01')),
                                          actionButton('statistic',label='统计'),
                                  ),
                                  mainPanel(
                                         shinycssloaders::withSpinner(
                                                 DT::DTOutput('report1')
-                                        ),
-                                        br(),
-                                        br(),
-                                        hr(),
-                                        DT::DTOutput('report2'),
-                                        br(),
-                                        br(),
-                                        hr(),
-                                        DT::DTOutput('report3'),
-                                        br(),
-                                        br(),
-                                        hr(),
-                                        plotOutput('report4')
+                                        )
                                  )
                         )
                 )
@@ -92,137 +71,36 @@ server <- function(input, output) {
         output$Update_info <- renderText({
                 "更新说明。"
         })
-        output$pic_upload1 <- renderUI({
-                if(is.null(input$input_type1)){
-                        return()
-                }else{
-                        switch(input$input_type1,
-                               '过表达'=fileInput('pic1',
-                                               label = '上传酶切鉴定结果',
-                                               multiple = T),
-                               '干扰'=fileInput('pic1',
-                                              label = '上传靶序列测序结果',
-                                              multiple = T),
-                               '基因编辑'=fileInput('pic1',
-                                                label = '上传靶序列测序结果',
-                                                multiple = T)
-                               )
-                }
-        })
         ##文件上传列表1
-        output$upload1_list <- renderUI({
-                if(is.null(input$input_type1)){
-                        return()
-                }else{
-                        print(str_c(input$pic1$name,collapse = '\t'))
-                }
+        output$file_list <- renderText({
+                input$excel_file$name
+                input$excel_file$datapath
         })
-        ##文件上传2
-        output$pic_upload2 <- renderUI({
-                if(is.null(input$input_type2)){
-                        return()
-                }else{
-                        switch(input$input_type2,
-                               '载体构建'=fileInput('pic2',
-                                               label = '上传载体图谱',
-                                               multiple = T),
-                               
-                               '载体构建和病毒包装'=fileInput('pic2',
-                                                label = '上传载体图谱',
-                                                multiple = T)
-                        )
-                }
-        })
-        ##文件上传列表2
-        output$upload2_list <- renderUI({
-                if(is.null(input$input_type2)){
-                        return()
-                }else{
-                        print(str_c(input$pic2$name,collapse = '\t'))
-                }
-        })
-        ##文件上传3
-        output$pic_upload3 <- renderUI({
-                if(is.null(input$input_type2)){
-                        return()
-                }else{
-                        switch(input$input_type2,
-                               '病毒包装'=fileInput('pic3',
-                                                label = '上传质粒和病毒感染图片',
-                                                multiple = T),
-                               
-                               '载体构建和病毒包装'=fileInput('pic3',
-                                                     label = '上传质粒和病毒感染图片',
-                                                     multiple = T)
-                        )
-                }
-        })
-        ##文件上传列表3
-        output$upload3_list <- renderUI({
-                if(is.null(input$input_type2)){
-                        return()
-                }else{
-                        print(str_c(input$pic3$name,collapse = '\t'))
-                }
-        })
-        ##文件下载处理
-        observeEvent(input$report_generate, {
+        
+        ##文件归档
+        observeEvent(input$archive, {
                 progress <- shiny::Progress$new()
                 on.exit(progress$close)
-                progress$set('读取word文件',value=0.5)
-                pic_name <- c(input$pic1$name,input$pic2$name,input$pic3$name)
-                pic_path <- c(input$pic1$datapath,input$pic2$datapath,input$pic3$datapath)
-                
-                progress$set('报告生成中。。。',value=0.75)
-                report_generate(
-                        raw_data=input$word_file$datapath,
-                        pic_name=pic_name,
-                        pic_path=pic_path,
-                        project1=input$input_type1,
-                        project2=input$input_type2,
-                        temp_dir=temp_dir
+                progress$set('读取文件',value=0.5)
+                progress$set('归档中。。。',value=0.75)
+                db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
+                archive_files(
+                        filepath=input$excel_file$datapath,
+                        filename=input$excel_file$name,
+                        db=db
                         )
-                
+                DBI::dbDisconnect(db)
                 progress$set('生成完成',value=1)
                 
+        })
 
-        })
-        ##报告下载
-        output$download <- downloadHandler(
-                filename=function(){
-                        y <- paste0(input$word_file$name,'.zip')
-                },
-                content=function(file){
-                        zipfile <- dir(temp_dir,'\\.zip',full.names = T)
-                        file.copy(zipfile, file)
-                        file.remove(zipfile)
-                }
-        )
-        
-        data_dt <- eventReactive(input$statistic,{
-                #'tb_dashboard/副本签单回款.xlsx'
-                source('bin/statistic.R')
-                tidy_data(input$excel_file$datapath,input$report_date)
-        })
-        
         output$report1 <- DT::renderDT({
-                data_dt()[[1]]
+                db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
+                dt <- dbReadTable(db,'分子信息表')
+                DBI::dbDisconnect(db)
+                dt
         })
         
-        output$report2 <- DT::renderDT({
-                data_dt()[[2]]
-        })
-        
-        output$report3 <- DT::renderDT({
-                data_dt()[[3]]
-        })
-        
-        output$report4 <- renderPlot({
-                ggplot(data_dt()[[4]],aes(病毒完成人,病毒滴度))+
-                        geom_boxplot()+
-                        theme(text=element_text(family="Songti SC"))+
-                        labs(title = '包装慢病毒滴度分布')
-        })
 }
         
 shinyApp(ui, server)      
