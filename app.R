@@ -1,6 +1,6 @@
-options(shiny.maxRequestSize = 500*1024^2)
-#library(ggplot2)
-source("./bin/report2.R",encoding = 'UTF8')
+options(shiny.maxRequestSize = 10000*1024^2)
+
+source("./bin/report_generate.R",encoding = 'UTF8')
 source('./bin/archive.R',encoding = 'UTF8')
 library(shiny)
 library(officer)
@@ -14,17 +14,60 @@ library(stringr)
 library(lubridate)
 library(ggplot2)
 library(RSQLite)
+library(shinyauthr)
+library(shinyjs)
+library(purrr)
 temp_dir <- tempdir()
-#zipfile <- tempfile(fileext = ".zip")
-#fontname <- "Arial"
+
+user_base <- data.frame(
+        user = c("user1", "user2"),
+        password = c("pass1", "pass2"), 
+        permissions = c("admin", "standard"),
+        name = c("User One", "User Two"),
+        stringsAsFactors = FALSE,
+        row.names = NULL
+)
 # Define UI for data upload app ----
 ui <- fluidPage(
-        
         # App title ----
         title = "Standar Output",
         hr(),
+        
         fluidPage(
                 tabsetPanel(
+                        tabPanel('结题报告系统',
+                                 br(),
+                                 br(),
+                                 sidebarPanel(
+                                         tags$a(href = 'https://www.teambition.com/project/58081fe94863251f4269aaf3/works/5f842098c24dc10044227f64/work/5f84229c003a3500449ba6ae',
+                                                "点此链接下载报告模板", target = "_blank"),
+                                         selectInput('vector_fun','选择载体种类',
+                                                     c('过表达','干扰','基因编辑')),
+                                         selectInput('vector_type','选择业务种类',
+                                                     c('载体构建','病毒包装','载体构建和病毒包装')),
+                                         fileInput('info_file',
+                                                   label = '上传实验信息表',
+                                                   multiple = T
+                                                   ),
+                                         actionButton('report_generate',label='点此生成报告'),
+                                         hr(),
+                                         downloadButton('download',label = '点此下载结题报告')
+                                 ),
+                                 mainPanel(
+                                         textOutput('Update_info'),
+                                         hr(),
+                                         uiOutput('pic_upload1'),
+                                         uiOutput('upload1_list'),
+                                         br(),
+                                         uiOutput('pic_upload2'),
+                                         uiOutput('upload2_list'),
+                                         hr(),
+                                         uiOutput('pic_upload3'),
+                                         uiOutput('upload3_list'),
+                                         hr(),
+                                         img(src='tutorial.png',width=580,height=300)
+                                 )
+                        ),
                         tabPanel('归档系统',
                                  br(),
                                  br(),
@@ -40,7 +83,7 @@ ui <- fluidPage(
 
                                  ),
                                  mainPanel(
-                                         textOutput('Update_info'),
+                                         #textOutput('Update_info'),
                                          textOutput('file_list'),
                                          hr(),
                                          #textOutput('feedback_info')
@@ -49,6 +92,7 @@ ui <- fluidPage(
                         tabPanel('统计系统',
                                  br(),
                                  br(),
+                                 
                                  sidebarPanel(
                                          selectInput('input_type2','选择统计种类',
                                                      c('实验信息表')),
@@ -56,6 +100,12 @@ ui <- fluidPage(
                                          actionButton('statistic',label='统计'),
                                  ),
                                  mainPanel(
+                                         # must turn shinyjs on
+                                         shinyjs::useShinyjs(),
+                                         # add logout button UI 
+                                         div(class = "pull-right", logoutUI(id = "logout")),
+                                         # add login panel UI function
+                                         loginUI(id = "login"),
                                         shinycssloaders::withSpinner(
                                                 DT::DTOutput('report1')
                                         )
@@ -67,10 +117,137 @@ ui <- fluidPage(
                 
         
 server <- function(input, output) {
+        # call the logout module with reactive trigger to hide/show
+        logout_init <- callModule(shinyauthr::logout, 
+                                  id = "logout", 
+                                  active = reactive(credentials()$user_auth))
+        
+        # call login module supplying data frame, user and password cols
+        # and reactive trigger
+        credentials <- callModule(shinyauthr::login, 
+                                  id = "login", 
+                                  data = user_base,
+                                  user_col = user,
+                                  pwd_col = password,
+                                  log_out = reactive(logout_init()))
+        
+        # pulls out the user information returned from login module
+        user_data <- reactive({credentials()$info})
+        
+        
         ##文件上传1
         output$Update_info <- renderText({
-                "更新说明。"
+                "2020.12.03更新：更换了新的实验记录模板，修复了此前模板有时无法生成报告的bug。"
         })
+        output$pic_upload1 <- renderUI({
+                if(is.null(input$vector_fun)){
+                        return()
+                }else{
+                        switch(input$vector_fun,
+                               '过表达'=fileInput('pic1',
+                                               label = '上传酶切鉴定结果',
+                                               multiple = T),
+                               '干扰'=fileInput('pic1',
+                                              label = '上传靶序列测序结果',
+                                              multiple = T),
+                               '基因编辑'=fileInput('pic1',
+                                                label = '上传靶序列测序结果',
+                                                multiple = T)
+                        )
+                }
+        })
+        ##文件上传列表1
+        output$upload1_list <- renderUI({
+                if(is.null(input$vector_fun)){
+                        return()
+                }else{
+                        print(str_c(input$pic1$name,collapse = '\t'))
+                }
+        })
+        ##文件上传2
+        output$pic_upload2 <- renderUI({
+                if(is.null(input$vector_type)){
+                        return()
+                }else{
+                        switch(input$vector_type,
+                               '载体构建'=fileInput('pic2',
+                                                label = '上传载体图谱',
+                                                multiple = T),
+                               
+                               '载体构建和病毒包装'=fileInput('pic2',
+                                                     label = '上传载体图谱',
+                                                     multiple = T)
+                        )
+                }
+        })
+        ##文件上传列表2 显示上传文件名
+        output$upload2_list <- renderUI({
+                if(is.null(input$vector_type)){
+                        return()
+                }else{
+                        print(str_c(input$pic2$name,collapse = '\t'))
+                }
+        })
+        ##文件上传3 上传质粒和病毒感染图片
+        output$pic_upload3 <- renderUI({
+                if(is.null(input$vector_type)){
+                        return()
+                }else{
+                        switch(input$vector_type,
+                               '病毒包装'=fileInput('pic3',
+                                                label = '上传质粒和病毒感染图片',
+                                                multiple = T),
+                               
+                               '载体构建和病毒包装'=fileInput('pic3',
+                                                     label = '上传质粒和病毒感染图片',
+                                                     multiple = T)
+                        )
+                }
+        })
+        ##文件上传列表3 显示上传图片名称
+        output$upload3_list <- renderUI({
+                if(is.null(input$vector_type)){
+                        return()
+                }else{
+                        print(str_c(input$pic3$name,collapse = '\t'))
+                }
+        })
+        ##生成结题报告
+        observeEvent(input$report_generate, {
+                progress <- shiny::Progress$new()
+                on.exit(progress$close)
+                progress$set('读取信息表',value=0.5)
+                pic_name <- c(input$pic1$name,input$pic2$name,input$pic3$name)
+                pic_path <- c(input$pic1$datapath,input$pic2$datapath,input$pic3$datapath)
+                
+                progress$set('报告生成中。。。',value=0.75)
+                report_generate(
+                        file_name = input$info_file$name,
+                        file_path = input$info_file$datapath,
+                        pic_name=pic_name,
+                        pic_path=pic_path,
+                        project1=input$input_type1,
+                        project2=input$input_type2,
+                        temp_dir=temp_dir
+                )
+                
+                progress$set('生成完成',value=1)
+        })
+        ##报告下载
+        output$download <- downloadHandler(
+                filename=function(){
+                        y <- paste0('report','.zip')
+                },
+                content=function(file){
+                        zipfile <- dir(temp_dir,'\\.zip',full.names = T)
+                        file.copy(zipfile, file)
+                        file.remove(zipfile)
+                }
+        )
+        
+        
+        
+        ###归档系统
         ##文件上传列表1
         output$file_list <- renderText({
                 input$excel_file$name
@@ -93,12 +270,16 @@ server <- function(input, output) {
                 progress$set('生成完成',value=1)
                 
         })
-
-        output$report1 <- DT::renderDT({
-                db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
-                dt <- dbReadTable(db,'分子信息表')
-                DBI::dbDisconnect(db)
-                dt
+        
+        ###统计系统
+        observeEvent(input$statistic,{
+                output$report1 <- DT::renderDT({
+                        req(credentials()$user_auth)
+                        db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
+                        dt <- dbReadTable(db,'分子信息表')
+                        DBI::dbDisconnect(db)
+                        dt
+                })
         })
         
 }

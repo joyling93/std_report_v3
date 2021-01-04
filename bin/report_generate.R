@@ -1,0 +1,317 @@
+report_generate <- function(file_name,file_path,pic_name,pic_path,project1,project2,temp_dir){
+        fontname <- "Arial"
+        dt <- 
+                tibble::tibble(
+                        dt_type = c('分子信息表','病毒信息表','细胞信息表')) %>% 
+                mutate(data = map(dt_type,function(dt_type){
+                        filelist <- file_path[str_which(file_name,dt_type)]
+                        map_df(filelist,openxlsx::read.xlsx)
+                })
+                )
+        
+        dt2 <- dt$data %>% 
+                reduce(left_join)
+        
+        #从主标题中提取id
+        id <- str_extract(unique(dt2$生产主任务标题),'fw-\\d+')
+        
+        ##检测测试
+        if(project2=='载体构建'){
+                if(!any(str_detect(file_name,'分子信息表'))){
+                        info <- '系统检测未上传分子信息表'
+                }
+        }else if(project2=='病毒包装'){
+                if(!any(str_detect(file_name,'病毒信息表'))){
+                        info <- '系统检测未上传病毒信息表'
+                }
+        }else{
+                if(!any(str_detect(file_name,'分子信息表'))){
+                        info <- '系统检测未上传分子信息表'
+                }
+                if(!any(str_detect(file_name,'病毒信息表'))){
+                        info <- '系统检测未上传病毒信息表'
+                }
+        }
+        
+        t1 <- 
+                dt2 %>% 
+                select(载体编号,载体描述,质粒规格,质粒数量,抗性) %>% 
+                mutate(抗性=paste0('质粒',抗性)) %>% 
+                rename(规格=质粒规格,数量=质粒数量,载体类型=抗性)
+        
+        
+        t2 <-  dt2 %>% 
+                select(载体编号,载体描述,菌种,甘油菌规格,甘油菌数量) %>% 
+                tidyr::drop_na() %>% 
+                mutate(菌种=paste0('甘油菌(',菌种,')')) %>% 
+                rename(规格=甘油菌规格,数量=甘油菌数量,载体类型=菌种) 
+        
+        t3 <- 
+                dt2 %>% 
+                select(载体编号,载体描述,载体类型,病毒类型,
+                           `病毒滴度(10的8次方)`,出库规格,出库数量) %>% 
+                tidyr::drop_na() %>% 
+                mutate(unit=map(病毒类型,function(x){
+                        if(str_detect(x,'LV')){
+                                'TU/mL'
+                        }else if(str_detect(x,'AAV')){
+                                'vg/mL'
+                        }else if(str_detect(x,'AD')){
+                                'ifu/mL'
+                        }}),
+                       病毒滴度=`病毒滴度(10的8次方)`*1e8,
+                       滴度 = paste0(病毒滴度,unit)
+                ) %>% 
+                select(载体编号,载体描述,载体类型,滴度,出库规格,出库数量) %>% 
+                rename(规格=出库规格,数量=出库数量)
+        
+        pre_read <- bind_rows(t1,t2,t3) %>% 
+                arrange(滴度) 
+        pre_read_ft <- pre_read %>% 
+                flextable()%>%
+                add_header_lines("产品信息速览表")%>%
+                add_header_lines('fw-43')%>%
+                bold(part = 'header')%>%
+                border_inner_h(border = fp_border(color="black", width = 1),part = 'body' )%>%
+                align(align = 'center',part = 'all')%>%
+                fontsize(i=1:2,size = 20,part = 'header')%>%
+                fontsize(i=3,size = 12,part = 'header')%>%
+                fontsize(j=-2,size = 10,part = 'body')%>%
+                fontsize(j=1:3,size = 7.5,part = 'body')%>%
+                autofit(add_h = 0,add_w = 0)%>%
+                height(height = 1,part = 'body')%>%
+                height(height = 0.4,part = 'header')%>%
+                width(j=1,width = 1.5)%>%
+                width(j=2,width = 2.7)%>%
+                width(j=4,width = 0.9)%>%
+                width(j=6,width = 0.5)%>%
+                font(fontname = fontname, part = "all")
+        
+        
+        primer_seq_ft <- dt2 %>% 
+                select(载体编号,测序引物)%>%
+                tidyr::drop_na() %>% 
+                flextable()%>%
+                add_header_lines("测序引物序列")%>%
+                border_inner_h(border = fp_border(color="black", width = 1),part = 'body' )%>%
+                align(align = 'center',part = 'all')%>%
+                fontsize(size = 7.5,part = 'all')%>%
+                autofit(add_h = 0.2,add_w=0.5)
+        
+        titer_data_ft <- 
+                t3 %>% 
+                select(载体编号,载体类型,滴度) %>% 
+                flextable()%>%
+                add_header_lines(values = '病毒滴度测定结果')%>%
+                border_inner_h(border = fp_border(color="black", width = 1),part = 'body' )%>%
+                align(align = 'center',part = 'all')%>%
+                fontsize(size = 10.5,part = 'body')%>%
+                fontsize(size = 12,part = 'header')%>%
+                bold(part = 'header')%>%
+                autofit(add_h = 0.2,add_w=0.2)%>%
+                font(fontname = fontname, part = "all")
+        
+        vector_info <- 
+                dt2 %>% 
+                select(基因信息,序列信息) %>% 
+                tidyr::drop_na() %>% 
+                filter(!基因信息=='/')
+        
+        
+        ##报告生成
+        my_doc <- read_docx('./data/vector&vrius_templete.docx')
+        
+        ##word 解析
+        fontname <- "Arial"
+        pic_insert <-function(my_doc,p2i,bookmark_id){
+                index <- str_which(pic_name,p2i)
+                index <- sort(index,decreasing = T)
+                for(pic in index){
+                        test <- image_scale(image_read(pic_path[pic]),'800')
+                        width <- image_info(test)$width/220##以word默认分辨率220dpi计算
+                        height <- image_info(test)$height/220##以word默认分辨率220dpi计算
+                        image_write(test,pic_path[pic])
+                        cursor_bookmark(my_doc,bookmark_id)
+                        body_add_img(my_doc,src = pic_path[pic], 
+                                     width = width, height = height,
+                                     pos = 'before',style = "pic_style")
+                }
+        }
+        
+        my_doc %>%
+                cursor_bookmark("contract_num")%>%
+                body_add_par('fw-40',style  = 'Subtitle')%>%
+                cursor_bookmark("date")%>%
+                body_add_par(value = Sys.Date(),style  = 'Subtitle')%>%
+                cursor_bookmark("theme")%>%
+                body_add_par(value = paste0('项目名称:',project2),style  = 'Subtitle')%>%
+                cursor_bookmark("pre_read_ft")%>%
+                body_add_flextable(pre_read_ft,align='center')
+        
+        
+        if(project2=='载体构建'){
+                ##添加靶序列引物
+                my_doc %>%
+                        cursor_bookmark('primer_seq') %>%
+                        body_add_flextable(value=primer_seq_ft,align='center') %>%
+                        cursor_bookmark('seq')
+                
+                ##添加靶序列
+                
+                vector_info %>%
+                        rename(x=基因信息,y=序列信息)%>%
+                        purrr::pwalk(function(x,y){
+                                body_add_par(my_doc,x,style = 'Normal')
+                                body_add_par(my_doc,y,style = 'seq')}
+                        )
+                
+                if(project1=='过表达'){
+                        my_doc %>%
+                                cursor_reach(keyword = "分子实验数据")%>%
+                                body_add_par(value = "分子实验数据文件夹内含有质粒图谱、质粒示意图、测序比对文件及酶切鉴定照片等分子实验原始数据。", style = "chinese_style")%>%
+                                cursor_reach(keyword = "病毒实验数据")%>%
+                                body_remove()%>%
+                                cursor_reach(keyword = "测序比对验证")%>%
+                                body_remove()%>%
+                                cursor_reach(keyword = "病毒滴度测定")%>%
+                                body_remove()
+                        pic_insert(my_doc,'酶切鉴定结果','enzyme_cut')
+                        pic_insert(my_doc,'载体图谱','vector_map')
+                }else{
+                        my_doc %>%
+                                cursor_reach('基因序列')%>%
+                                body_remove()%>%
+                                body_add_par('靶序列',style='heading 2',pos = 'before')%>%
+                                cursor_reach(keyword = "分子实验数据")%>%
+                                body_add_par(value = "分子实验数据文件夹内含有质粒图谱、质粒示意图、测序比对文件及酶切鉴定照片等分子实验原始数据。", style = "chinese_style")%>%
+                                cursor_reach(keyword = "病毒实验数据")%>%
+                                body_remove()%>%
+                                cursor_reach(keyword = "质粒酶切验证")%>%
+                                body_remove()%>%
+                                cursor_reach(keyword = "病毒滴度测定")%>%
+                                body_remove()
+                        pic_insert(my_doc,'靶序列测序结果','seq_map')
+                        pic_insert(my_doc,'载体图谱','vector_map') 
+                }
+        }else if(project2=='病毒包装'){
+                #picture_list <- list('酶切鉴定结果')
+                my_doc %>%
+                        cursor_reach('基因序列')%>%
+                        body_remove()%>%
+                        body_add_par('靶序列',style='heading 2',pos = 'before')%>%
+                        cursor_reach(keyword = "^载体构建信息$")%>%
+                        body_remove()%>%
+                        cursor_reach(keyword = "^载体$")%>%
+                        body_remove()%>%
+                        cursor_reach(keyword = "测序比对验证")%>%
+                        body_remove()%>%
+                        body_bookmark('titration')%>%
+                        body_add_flextable(value=titer_data_ft)%>%
+                        cursor_reach(keyword = "测序引物序列")%>%
+                        body_remove()%>%
+                        cursor_reach(keyword = "分子实验数据")%>%
+                        body_remove()%>%
+                        cursor_reach(keyword = "病毒实验数据")%>%
+                        body_add_par(value = "病毒实验数据文件夹内含有质粒转染和慢病毒感染的原始图片。（注：质粒转染图片和滴度检测图片命名规则：载体编号-时间-物镜倍数-荧光类型。eg. LW429-48h-4×-G（G:绿光，R:红光，W：白光））"
+                                     , style = "chinese_style")
+                pic_insert(my_doc,'酶切鉴定结果','enzyme_cut')
+                
+        }else{
+                my_doc %>%
+                        cursor_bookmark('primer_seq')%>%
+                        body_add_flextable(value=primer_seq_ft,align='center')%>%
+                        cursor_bookmark('seq')
+                ##添加靶序列
+                #test.t <- 
+                vector_info %>%
+                        rename(x=基因信息,y=序列信息)%>%
+                        purrr::pwalk(function(x,y){
+                                body_add_par(my_doc,x,style = 'Normal')
+                                body_add_par(my_doc,y,style = 'seq')}
+                        )
+                
+                if(project1=='过表达'){
+                        #确定报告结果类别
+
+                        my_doc %>% cursor_reach(keyword = "测序比对验证")%>%
+                                body_remove()
+                        pic_insert(my_doc,'酶切鉴定结果','enzyme_cut')
+                        pic_insert(my_doc,'载体图谱','vector_map') 
+                }else{
+                        picture_list <- list('载体图谱',"靶序列测序结果")
+                        my_doc %>% 
+                                cursor_reach('基因序列')%>%
+                                body_remove()%>%
+                                body_add_par('靶序列',style='heading 2',pos = 'before')%>%
+                                cursor_reach(keyword = "质粒酶切验证")%>%
+                                body_remove()
+                        pic_insert(my_doc,'载体图谱','vector_map')
+                        pic_insert(my_doc,'靶序列测序结果','seq_map')
+                }
+                my_doc %>%
+                        body_replace_flextable_at_bkm('titration',value=titer_data_ft)%>%
+                        cursor_reach(keyword = "分子实验数据")%>%
+                        body_add_par(value = "分子实验数据文件夹内含有质粒图谱、质粒示意图、测序比对文件及酶切鉴定照片等分子实验原始数据。"
+                                     , style = "chinese_style")%>%
+                        cursor_reach(keyword = "病毒实验数据")%>%
+                        body_add_par(value = "病毒实验数据文件夹内含有质粒转染和慢病毒感染的原始图片。（注：质粒转染图片和滴度检测图片命名规则：载体编号-时间-物镜倍数-荧光类型。eg. LW429-48h-4×-G（G:绿光，R:红光，W：白光））"
+                                     , style = "chinese_style")
+        }
+        
+        dir.create(file.path(temp_dir,id))
+        
+        print(my_doc,file.path(temp_dir,
+                               id,
+                               paste('test',
+                                     '结题报告.docx',
+                                     sep = '-')
+        ))
+
+        
+        #生成标签用数据
+        label.file <- pre_read%>%
+                mutate(订单编号=id,
+                           客户姓名='老王',
+                           储存条件=if_else(stringr::str_detect(载体类型,'病毒',),
+                                        '-80℃','-20℃'
+                           ))
+        
+        openxlsx::write.xlsx(label.file,
+                             file.path(temp_dir,
+                                       id,
+                                       '标签打印用（正式报告中须删除）.xlsx')
+        )
+        #置入说明书
+        if(any(stringr::str_detect(pre_read$载体类型,'慢病毒'))){
+                virus_type <- '慢病毒'
+        }else if(any(stringr::str_detect(pre_read$载体类型,'腺病毒'))){
+                virus_type <- '腺病毒'
+        }else if(any(stringr::str_detect(pre_read$载体类型,'腺相关病毒'))){
+                virus_type <- '腺相关病毒'
+        }else {
+                virus_type <- '载体构建'
+        }
+        
+        manual_list <- dir('./data/manual','.pdf',full.names = T)%>%
+                stringr::str_subset(paste0(project1,virus_type))
+        
+        if (project2=='载体构建'){
+                manual_path <- manual_list%>%
+                        stringr::str_subset('包装',negate = T)
+        }else {
+                manual_path <- manual_list%>%
+                        stringr::str_subset('包装')
+        }
+        
+        file.copy(manual_path,file.path(temp_dir,
+                                        id))
+        
+        #压缩文件
+        zip::zipr(
+                zipfile = file.path(temp_dir,
+                                    paste0(id,'.zip')), 
+                files = file.path(temp_dir,id),
+                include_directories = T
+        )
+
+}
