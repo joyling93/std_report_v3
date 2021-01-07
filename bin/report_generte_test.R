@@ -5,8 +5,8 @@ library(dplyr)
 
 getwd()
 setwd('debug/模板文件')
-file_name <- dir(all.files=F)[-c(1:2)]
-file_path <- dir(all.files=F,full.names = T)[-c(1:2)]
+file_name <- dir(all.files=F)[c(3,7)]
+file_path <- dir(all.files=F,full.names = T)[c(3,7)]
 project1 <- '过表达'
 project2 <- '载体构建和病毒包装'
 fontname <- "Arial"
@@ -25,8 +25,11 @@ dt <-
         })
         )
 
+dt %>% 
+        mutate(data=keep(data,function(x){length(x)>0}))
 
 dt2 <- dt$data %>% 
+        keep(function(x){length(x)>0}) %>% 
         reduce(left_join)
 
 ##检测测试
