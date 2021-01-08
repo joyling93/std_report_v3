@@ -17,25 +17,6 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
         #从主标题中提取id
         id <- str_extract(unique(dt2$生产主任务标题),'fw-\\d+')
         
-        ##检测测试
-        info <- '未自动检测到问题'
-        if(project2=='载体构建'){
-                if(!any(str_detect(file_name,'分子信息表'))){
-                        info <- '系统检测未上传分子信息表'
-                }
-        }else if(project2=='病毒包装'){
-                if(!any(str_detect(file_name,'病毒信息表'))){
-                        info <- '系统检测未上传病毒信息表'
-                }
-        }else{
-                if(!any(str_detect(file_name,'分子信息表'))){
-                        info <- '系统检测未上传分子信息表'
-                }
-                if(!any(str_detect(file_name,'病毒信息表'))){
-                        info <- '系统检测未上传病毒信息表'
-                }
-        }
-        
         t1 <- 
                 dt2 %>% 
                 select(载体编号,载体描述,质粒规格,质粒数量,抗性) %>% 

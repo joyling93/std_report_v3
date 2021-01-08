@@ -2,7 +2,9 @@ options(shiny.maxRequestSize = 10000*1024^2)
 
 source("./bin/report_generate.R",encoding = 'UTF8')
 source('./bin/archive.R',encoding = 'UTF8')
+source('./bin/input_test.R',encoding = 'UTF8')
 library(shiny)
+library(shinydashboard)
 library(officer)
 library(stringr)
 library(dplyr)
@@ -17,6 +19,7 @@ library(RSQLite)
 library(shinyauthr)
 library(shinyjs)
 library(purrr)
+
 temp_dir <- tempdir()
 
 user_base <- data.frame(
@@ -49,11 +52,15 @@ ui <- fluidPage(
                                                    label = '上传实验信息表',
                                                    multiple = T
                                                    ),
+                                         hr(),
+                                         actionButton('input_exame',label='信息表完整性检查'),
+                                         hr(),
                                          actionButton('report_generate',label='点此生成报告'),
                                          hr(),
                                          downloadButton('download',label = '点此下载结题报告')
                                  ),
                                  mainPanel(
+                                         textOutput('info'),
                                          textOutput('Update_info'),
                                          hr(),
                                          uiOutput('pic_upload1'),
@@ -212,6 +219,15 @@ server <- function(input, output) {
                         print(str_c(input$pic3$name,collapse = '\t'))
                 }
         })
+        
+        ##信息表检查
+        
+        output$info <- renderText({
+                input_test(input$info_file$name,
+                           project2=input$vector_type)
+        })
+
+        
         ##生成结题报告
         observeEvent(input$report_generate, {
                 progress <- shiny::Progress$new()
@@ -226,11 +242,10 @@ server <- function(input, output) {
                         file_path = input$info_file$datapath,
                         pic_name=pic_name,
                         pic_path=pic_path,
-                        project1=input$input_type1,
-                        project2=input$input_type2,
+                        project1=input$vector_fun,
+                        project2=input$vector_type,
                         temp_dir=temp_dir
                 )
-                
                 progress$set('生成完成',value=1)
         })
         ##报告下载
