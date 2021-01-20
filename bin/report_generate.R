@@ -12,46 +12,114 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
         dt2 <- dt$data %>% 
                 keep(function(x){length(x)>0}) %>% 
                 reduce(left_join)
-
+        
         
         #从主标题中提取id
         id <- str_extract(unique(dt2$生产主任务标题),'fw-\\d+')
         
-        t1 <- 
-                dt2 %>% 
-                select(载体编号,载体描述,质粒规格,质粒数量,抗性) %>% 
-                mutate(抗性=paste0('质粒',抗性)) %>% 
-                rename(规格=质粒规格,数量=质粒数量,载体类型=抗性)
+        if(str_detect(project2,'载体')){
+                t1 <- 
+                        dt2 %>% 
+                        select(载体编号,载体描述,质粒规格,质粒数量,抗性) %>% 
+                        mutate(抗性=paste0('质粒',抗性)) %>% 
+                        rename(规格=质粒规格,数量=质粒数量,载体类型=抗性)
+                
+                
+                t2 <-  dt2 %>% 
+                        select(载体编号,载体描述,菌种,甘油菌规格,甘油菌数量) %>% 
+                        tidyr::drop_na() %>% 
+                        mutate(菌种=paste0('甘油菌(',菌种,')')) %>% 
+                        rename(规格=甘油菌规格,数量=甘油菌数量,载体类型=菌种) 
+                
+                vector_info <- 
+                        dt2 %>% 
+                        select(基因信息,序列信息) %>% 
+                        tidyr::drop_na() %>% 
+                        filter(!基因信息=='/')
+                
+                primer_seq_ft <- dt2 %>% 
+                        select(载体编号,测序引物)%>%
+                        tidyr::drop_na() %>% 
+                        flextable()%>%
+                        add_header_lines("测序引物序列")%>%
+                        border_inner_h(border = fp_border(color="black", width = 1),part = 'body' )%>%
+                        align(align = 'center',part = 'all')%>%
+                        fontsize(size = 7.5,part = 'all')%>%
+                        autofit(add_h = 0.2,add_w=0.5)
+        }else{
+                t1 <- data.frame(载体编号=character(),
+                                     载体描述=character(), 
+                                     载体类型=character(), 
+                                     
+                                     规格=character(),
+                                     数量=character())
+                
+                t2 <- data.frame(载体编号=character(),
+                                     载体描述=character(), 
+                                     载体类型=character(), 
+                                     
+                                     规格=character(),
+                                     数量=character()) 
+        }
         
         
-        t2 <-  dt2 %>% 
-                select(载体编号,载体描述,菌种,甘油菌规格,甘油菌数量) %>% 
-                tidyr::drop_na() %>% 
-                mutate(菌种=paste0('甘油菌(',菌种,')')) %>% 
-                rename(规格=甘油菌规格,数量=甘油菌数量,载体类型=菌种) 
+        if(str_detect(project2,'病毒')){
+                t3 <- 
+                        dt2 %>% 
+                        select(载体编号,载体描述,载体类型,病毒类型,
+                                   `病毒滴度(10的8次方)`,出库规格,出库数量) %>% 
+                        tidyr::drop_na() %>% 
+                        mutate(unit=map(病毒类型,function(x){
+                                if(str_detect(x,'LV')){
+                                        'TU/mL'
+                                }else if(str_detect(x,'AAV')){
+                                        'vg/mL'
+                                }else if(str_detect(x,'AD')){
+                                        'ifu/mL'
+                                }}),
+                               病毒滴度=`病毒滴度(10的8次方)`*1e8,
+                               滴度 = paste0(病毒滴度,unit)
+                        ) %>% 
+                        select(载体编号,载体描述,载体类型,滴度,出库规格,出库数量) %>% 
+                        rename(规格=出库规格,数量=出库数量)
+                
+                # else if(project2=='病毒包装'){
+                #         t3 <- 
+                #                 dt2 %>% 
+                #                 select(载体编号,载体描述,载体类型,病毒类型,
+                #                            `病毒滴度(10的8次方)`,出库规格,出库数量) %>% 
+                #                 tidyr::drop_na() %>% 
+                #                 mutate(unit=map(病毒类型,function(x){
+                #                         if(str_detect(x,'LV')){
+                #                                 'TU/mL'
+                #                         }else if(str_detect(x,'AAV')){
+                #                                 'vg/mL'
+                #                         }else if(str_detect(x,'AD')){
+                #                                 'ifu/mL'
+                #                         }}),
+                #                        病毒滴度=`病毒滴度(10的8次方)`*1e8,
+                #                        滴度 = paste0(病毒滴度,unit)
+                #                 ) %>% 
+                #                 select(载体编号,滴度,出库规格,出库数量) %>% 
+                #                 rename(规格=出库规格,数量=出库数量)
+                # }
+        }else{
+                t3 <- data.frame(载体编号=character(),
+                                     载体描述=character(), 
+                                     载体类型=character(), 
+                                     滴度=character(),
+                                     规格=character(),
+                                     数量=character()) 
+        }
         
-        t3 <- 
-                dt2 %>% 
-                select(载体编号,载体描述,载体类型,病毒类型,
-                           `病毒滴度(10的8次方)`,出库规格,出库数量) %>% 
-                tidyr::drop_na() %>% 
-                mutate(unit=map(病毒类型,function(x){
-                        if(str_detect(x,'LV')){
-                                'TU/mL'
-                        }else if(str_detect(x,'AAV')){
-                                'vg/mL'
-                        }else if(str_detect(x,'AD')){
-                                'ifu/mL'
-                        }}),
-                       病毒滴度=`病毒滴度(10的8次方)`*1e8,
-                       滴度 = paste0(病毒滴度,unit)
-                ) %>% 
-                select(载体编号,载体描述,载体类型,滴度,出库规格,出库数量) %>% 
-                rename(规格=出库规格,数量=出库数量)
         
         pre_read <- bind_rows(t1,t2,t3) %>% 
                 arrange(滴度) 
+        # drop_na() %>% 
+        # arrange(滴度) 
         pre_read_ft <- pre_read %>% 
+                mutate(滴度=map_chr(滴度,~ifelse(is.na(.x),'/',.x))) %>% 
+                select(载体编号,载体描述,载体类型,滴度,规格,数量) %>% 
                 flextable()%>%
                 add_header_lines("产品信息速览表")%>%
                 add_header_lines('fw-43')%>%
@@ -71,17 +139,6 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
                 width(j=6,width = 0.5)%>%
                 font(fontname = fontname, part = "all")
         
-        
-        primer_seq_ft <- dt2 %>% 
-                select(载体编号,测序引物)%>%
-                tidyr::drop_na() %>% 
-                flextable()%>%
-                add_header_lines("测序引物序列")%>%
-                border_inner_h(border = fp_border(color="black", width = 1),part = 'body' )%>%
-                align(align = 'center',part = 'all')%>%
-                fontsize(size = 7.5,part = 'all')%>%
-                autofit(add_h = 0.2,add_w=0.5)
-        
         titer_data_ft <- 
                 t3 %>% 
                 select(载体编号,载体类型,滴度) %>% 
@@ -95,18 +152,9 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
                 autofit(add_h = 0.2,add_w=0.2)%>%
                 font(fontname = fontname, part = "all")
         
-        vector_info <- 
-                dt2 %>% 
-                select(基因信息,序列信息) %>% 
-                tidyr::drop_na() %>% 
-                filter(!基因信息=='/')
-        
-        
         ##报告生成
         my_doc <- read_docx('./data/vector&vrius_templete.docx')
         
-        ##word 解析
-        fontname <- "Arial"
         pic_insert <-function(my_doc,p2i,bookmark_id){
                 index <- str_which(pic_name,p2i)
                 index <- sort(index,decreasing = T)

@@ -47,8 +47,8 @@ ui <- dashboardPage(
                                         br(),
                                         br(),
                                         sidebarPanel(
-                                                tags$a(href = 'https://www.teambition.com/project/58081fe94863251f4269aaf3/works/5f842098c24dc10044227f64/work/5f84229c003a3500449ba6ae',
-                                                       "点此链接下载报告模板", target = "_blank"),
+                                                # tags$a(href = 'https://www.teambition.com/project/58081fe94863251f4269aaf3/works/5f842098c24dc10044227f64/work/5f84229c003a3500449ba6ae',
+                                                #        "点此链接下载报告模板", target = "_blank"),
                                                 selectInput('vector_fun','选择载体种类',
                                                             c('过表达','干扰','基因编辑')),
                                                 selectInput('vector_type','选择业务种类',
@@ -66,6 +66,7 @@ ui <- dashboardPage(
                                         ),
                                         mainPanel(
                                                 textOutput('info'),
+                                                hr(),
                                                 textOutput('Update_info'),
                                                 hr(),
                                                 uiOutput('pic_upload1'),
@@ -77,7 +78,7 @@ ui <- dashboardPage(
                                                 uiOutput('pic_upload3'),
                                                 uiOutput('upload3_list'),
                                                 hr(),
-                                                img(src='tutorial.png',width=580,height=300)
+                                                #img(src='tutorial.png',width=580,height=300)
                                         )  
                                 )
                         ),
