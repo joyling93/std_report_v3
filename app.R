@@ -230,13 +230,13 @@ server <- function(input, output) {
         #         }
         # })
         ##文件上传列表3 显示上传图片名称
-        output$upload3_list <- renderUI({
-                if(is.null(input$vector_type)){
-                        return()
-                }else{
-                        print(str_c(input$pic3$name,collapse = '\t'))
-                }
-        })
+        # output$upload3_list <- renderUI({
+        #         if(is.null(input$vector_type)){
+        #                 return()
+        #         }else{
+        #                 print(str_c(input$pic3$name,collapse = '\t'))
+        #         }
+        # })
         
         ##信息表检查
         

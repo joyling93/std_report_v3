@@ -237,8 +237,7 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
                         body_remove()%>%
                         cursor_reach(keyword = "测序比对验证")%>%
                         body_remove()%>%
-                        body_bookmark('titration')%>%
-                        body_add_flextable(value=titer_data_ft)%>%
+                        body_replace_flextable_at_bkm('titration',value=titer_data_ft)%>%
                         cursor_reach(keyword = "测序引物序列")%>%
                         body_remove()%>%
                         cursor_reach(keyword = "分子实验数据")%>%

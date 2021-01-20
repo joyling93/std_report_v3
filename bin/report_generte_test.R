@@ -2,6 +2,7 @@ library(stringr)
 library(officer)
 library(flextable)
 library(dplyr)
+library(purrr)
 
 getwd()
 setwd('debug/模板文件')
@@ -15,9 +16,10 @@ pic_path <- dir('.','.png',full.names = T)
 id <- str_extract(unique(dt2$生产主任务标题),'fw-\\d+')
 custom <- '老王'
 
+fontname <- "Arial"
 dt <- 
         tibble::tibble(
-                dt_type = c('分子信息表','病毒信息表','细胞信息表')) %>% 
+                dt_type = c('分子实验记录表','病毒实验记录表','细胞实验记录表')) %>% 
         mutate(data = map(dt_type,function(dt_type){
                 filelist <- file_path[str_which(file_name,dt_type)]
                 map_df(filelist,openxlsx::read.xlsx)
@@ -97,27 +99,27 @@ if(str_detect(project2,'病毒')){
                 ) %>% 
                 select(载体编号,载体描述,载体类型,滴度,出库规格,出库数量) %>% 
                 rename(规格=出库规格,数量=出库数量)
-
-# else if(project2=='病毒包装'){
-#         t3 <- 
-#                 dt2 %>% 
-#                 select(载体编号,载体描述,载体类型,病毒类型,
-#                            `病毒滴度(10的8次方)`,出库规格,出库数量) %>% 
-#                 tidyr::drop_na() %>% 
-#                 mutate(unit=map(病毒类型,function(x){
-#                         if(str_detect(x,'LV')){
-#                                 'TU/mL'
-#                         }else if(str_detect(x,'AAV')){
-#                                 'vg/mL'
-#                         }else if(str_detect(x,'AD')){
-#                                 'ifu/mL'
-#                         }}),
-#                        病毒滴度=`病毒滴度(10的8次方)`*1e8,
-#                        滴度 = paste0(病毒滴度,unit)
-#                 ) %>% 
-#                 select(载体编号,滴度,出库规格,出库数量) %>% 
-#                 rename(规格=出库规格,数量=出库数量)
-# }
+        
+        # else if(project2=='病毒包装'){
+        #         t3 <- 
+        #                 dt2 %>% 
+        #                 select(载体编号,载体描述,载体类型,病毒类型,
+        #                            `病毒滴度(10的8次方)`,出库规格,出库数量) %>% 
+        #                 tidyr::drop_na() %>% 
+        #                 mutate(unit=map(病毒类型,function(x){
+        #                         if(str_detect(x,'LV')){
+        #                                 'TU/mL'
+        #                         }else if(str_detect(x,'AAV')){
+        #                                 'vg/mL'
+        #                         }else if(str_detect(x,'AD')){
+        #                                 'ifu/mL'
+        #                         }}),
+        #                        病毒滴度=`病毒滴度(10的8次方)`*1e8,
+        #                        滴度 = paste0(病毒滴度,unit)
+        #                 ) %>% 
+        #                 select(载体编号,滴度,出库规格,出库数量) %>% 
+        #                 rename(规格=出库规格,数量=出库数量)
+        # }
 }else{
         t3 <- data.frame(载体编号=character(),
                              载体描述=character(), 
@@ -126,7 +128,7 @@ if(str_detect(project2,'病毒')){
                              规格=character(),
                              数量=character()) 
 }
-print('test')
+
 
 pre_read <- bind_rows(t1,t2,t3) %>% 
         arrange(滴度) 
@@ -153,9 +155,6 @@ pre_read_ft <- pre_read %>%
         width(j=4,width = 0.9)%>%
         width(j=6,width = 0.5)%>%
         font(fontname = fontname, part = "all")
-
-
-
 
 titer_data_ft <- 
         t3 %>% 
