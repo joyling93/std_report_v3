@@ -12,7 +12,6 @@ library(flextable)
 library(tidyr)
 library(viridis)
 library(magick)
-library(stringr)
 library(lubridate)
 library(ggplot2)
 library(RSQLite)
@@ -31,96 +30,114 @@ user_base <- data.frame(
         row.names = NULL
 )
 # Define UI for data upload app ----
-ui <- fluidPage(
+ui <- dashboardPage(
         # App title ----
-        title = "Standar Output",
-        hr(),
-        
-        fluidPage(
-                tabsetPanel(
-                        tabPanel('结题报告系统',
-                                 br(),
-                                 br(),
-                                 sidebarPanel(
-                                         tags$a(href = 'https://www.teambition.com/project/58081fe94863251f4269aaf3/works/5f842098c24dc10044227f64/work/5f84229c003a3500449ba6ae',
-                                                "点此链接下载报告模板", target = "_blank"),
-                                         selectInput('vector_fun','选择载体种类',
-                                                     c('过表达','干扰','基因编辑')),
-                                         selectInput('vector_type','选择业务种类',
-                                                     c('载体构建','病毒包装','载体构建和病毒包装')),
-                                         fileInput('info_file',
-                                                   label = '上传实验信息表',
-                                                   multiple = T
-                                                   ),
-                                         hr(),
-                                         actionButton('input_exame',label='信息表完整性检查'),
-                                         hr(),
-                                         actionButton('report_generate',label='点此生成报告'),
-                                         hr(),
-                                         downloadButton('download',label = '点此下载结题报告')
-                                 ),
-                                 mainPanel(
-                                         textOutput('info'),
-                                         textOutput('Update_info'),
-                                         hr(),
-                                         uiOutput('pic_upload1'),
-                                         uiOutput('upload1_list'),
-                                         br(),
-                                         uiOutput('pic_upload2'),
-                                         uiOutput('upload2_list'),
-                                         hr(),
-                                         uiOutput('pic_upload3'),
-                                         uiOutput('upload3_list'),
-                                         hr(),
-                                         img(src='tutorial.png',width=580,height=300)
-                                 )
+        dashboardHeader(title = "Standar Output"),
+        dashboardSidebar(
+                sidebarMenu(
+                        menuItem("结题报告系统", tabName = "结题报告系统", icon = icon("adn")),
+                        menuItem("归档系统", tabName = "归档系统", icon = icon("archive")),
+                        menuItem("统计系统", tabName = "统计系统", icon = icon("chart-line"))
+                )
+        ),
+        dashboardBody(
+                tabItems(
+                        tabItem(tabName = '结题报告系统',
+                                fluidRow(
+                                        br(),
+                                        br(),
+                                        sidebarPanel(
+                                                tags$a(href = 'https://www.teambition.com/project/58081fe94863251f4269aaf3/works/5f842098c24dc10044227f64/work/5f84229c003a3500449ba6ae',
+                                                       "点此链接下载报告模板", target = "_blank"),
+                                                selectInput('vector_fun','选择载体种类',
+                                                            c('过表达','干扰','基因编辑')),
+                                                selectInput('vector_type','选择业务种类',
+                                                            c('载体构建','病毒包装','载体构建和病毒包装')),
+                                                fileInput('info_file',
+                                                          label = '上传实验信息表',
+                                                          multiple = T
+                                                ),
+                                                hr(),
+                                                # actionButton('input_exame',label='信息表完整性检查'),
+                                                # hr(),
+                                                actionButton('report_generate',label='点此生成报告'),
+                                                hr(),
+                                                downloadButton('download',label = '点此下载结题报告')
+                                        ),
+                                        mainPanel(
+                                                textOutput('info'),
+                                                textOutput('Update_info'),
+                                                hr(),
+                                                uiOutput('pic_upload1'),
+                                                uiOutput('upload1_list'),
+                                                br(),
+                                                uiOutput('pic_upload2'),
+                                                uiOutput('upload2_list'),
+                                                hr(),
+                                                uiOutput('pic_upload3'),
+                                                uiOutput('upload3_list'),
+                                                hr(),
+                                                img(src='tutorial.png',width=580,height=300)
+                                        )  
+                                )
                         ),
-                        tabPanel('归档系统',
-                                 br(),
-                                 br(),
-                                 sidebarPanel(
-                                         selectInput('input_type1','选择归档信息种类',
-                                                     c('实验信息表')),
-                                         fileInput('excel_file',
-                                                   label = '上传excel文件',
-                                                   multiple = T),
-                                         #actionButton('report_download',label = '下载结题报告'),
-                                         #hr(),
-                                         actionButton('archive',label='点此开始归档'),
-
-                                 ),
-                                 mainPanel(
-                                         #textOutput('Update_info'),
-                                         textOutput('file_list'),
-                                         hr(),
-                                         #textOutput('feedback_info')
-                                 )
-                        ),
-                        tabPanel('统计系统',
-                                 br(),
-                                 br(),
-                                 
-                                 sidebarPanel(
-                                         selectInput('input_type2','选择统计种类',
-                                                     c('实验信息表')),
-                                         #dateInput('report_date',label = '选择统计日期',value = date('2020-09-01')),
-                                         actionButton('statistic',label='统计'),
-                                 ),
-                                 mainPanel(
-                                         # must turn shinyjs on
-                                         shinyjs::useShinyjs(),
-                                         # add logout button UI 
-                                         div(class = "pull-right", logoutUI(id = "logout")),
-                                         # add login panel UI function
-                                         loginUI(id = "login"),
-                                        shinycssloaders::withSpinner(
-                                                DT::DTOutput('report1')
+                        
+                        tabItem(tabName = '归档系统',
+                                fluidRow(
+                                        br(),
+                                        br(),
+                                        sidebarPanel(
+                                                selectInput('input_type1','选择归档信息种类',
+                                                            c('实验信息表')),
+                                                fileInput('excel_file',
+                                                          label = '上传excel文件',
+                                                          multiple = T),
+                                                #actionButton('report_download',label = '下载结题报告'),
+                                                #hr(),
+                                                actionButton('archive',label='点此开始归档'),
+                                                
+                                        ),
+                                        mainPanel(
+                                                #textOutput('Update_info'),
+                                                textOutput('file_list'),
+                                                hr(),
+                                                #textOutput('feedback_info')
                                         )
-                                 )
+                                )
+                        ),
+                        
+                        
+                        tabItem(tabName = '统计系统',
+                                fluidRow(
+                                        br(),
+                                        br(),
+                                        
+                                        sidebarPanel(
+                                                selectInput('input_type2','选择统计种类',
+                                                            c('实验信息表')),
+                                                #dateInput('report_date',label = '选择统计日期',value = date('2020-09-01')),
+                                                actionButton('statistic',label='统计'),
+                                        ),
+                                        mainPanel(
+                                                # must turn shinyjs on
+                                                shinyjs::useShinyjs(),
+                                                # add logout button UI 
+                                                div(class = "pull-right", logoutUI(id = "logout")),
+                                                # add login panel UI function
+                                                loginUI(id = "login"),
+                                                shinycssloaders::withSpinner(
+                                                        DT::DTOutput('report1')
+                                                )
+                                        )
+                                )
                         )
                 )
-                )
+                
         )
+)
+        
+                        
+                       
                 
         
 server <- function(input, output) {
