@@ -54,7 +54,7 @@ ui <- dashboardPage(
                                                 selectInput('vector_type','选择业务种类',
                                                             c('载体构建','病毒包装','载体构建和病毒包装')),
                                                 fileInput('info_file',
-                                                          label = '上传实验信息表',
+                                                          label = '上传实验记录表',
                                                           multiple = T
                                                 ),
                                                 hr(),
@@ -75,8 +75,8 @@ ui <- dashboardPage(
                                                 uiOutput('pic_upload2'),
                                                 uiOutput('upload2_list'),
                                                 hr(),
-                                                uiOutput('pic_upload3'),
-                                                uiOutput('upload3_list'),
+                                                #uiOutput('pic_upload3'),
+                                                #uiOutput('upload3_list'),
                                                 hr(),
                                                 #img(src='tutorial.png',width=580,height=300)
                                         )  
@@ -89,7 +89,7 @@ ui <- dashboardPage(
                                         br(),
                                         sidebarPanel(
                                                 selectInput('input_type1','选择归档信息种类',
-                                                            c('实验信息表')),
+                                                            c('实验记录表')),
                                                 fileInput('excel_file',
                                                           label = '上传excel文件',
                                                           multiple = T),
@@ -115,7 +115,7 @@ ui <- dashboardPage(
                                         
                                         sidebarPanel(
                                                 selectInput('input_type2','选择统计种类',
-                                                            c('实验信息表')),
+                                                            c('实验记录表')),
                                                 #dateInput('report_date',label = '选择统计日期',value = date('2020-09-01')),
                                                 actionButton('statistic',label='统计'),
                                         ),
@@ -214,21 +214,21 @@ server <- function(input, output) {
                 }
         })
         ##文件上传3 上传质粒和病毒感染图片
-        output$pic_upload3 <- renderUI({
-                if(is.null(input$vector_type)){
-                        return()
-                }else{
-                        switch(input$vector_type,
-                               '病毒包装'=fileInput('pic3',
-                                                label = '上传质粒和病毒感染图片',
-                                                multiple = T),
-                               
-                               '载体构建和病毒包装'=fileInput('pic3',
-                                                     label = '上传质粒和病毒感染图片',
-                                                     multiple = T)
-                        )
-                }
-        })
+        # output$pic_upload3 <- renderUI({
+        #         if(is.null(input$vector_type)){
+        #                 return()
+        #         }else{
+        #                 switch(input$vector_type,
+        #                        '病毒包装'=fileInput('pic3',
+        #                                         label = '上传质粒和病毒感染图片',
+        #                                         multiple = T),
+        #                        
+        #                        '载体构建和病毒包装'=fileInput('pic3',
+        #                                              label = '上传质粒和病毒感染图片',
+        #                                              multiple = T)
+        #                 )
+        #         }
+        # })
         ##文件上传列表3 显示上传图片名称
         output$upload3_list <- renderUI({
                 if(is.null(input$vector_type)){

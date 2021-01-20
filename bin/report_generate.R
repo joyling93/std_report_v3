@@ -2,7 +2,7 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
         fontname <- "Arial"
         dt <- 
                 tibble::tibble(
-                        dt_type = c('分子信息表','病毒信息表','细胞信息表')) %>% 
+                        dt_type = c('分子实验记录表','病毒实验记录表','细胞实验记录表')) %>% 
                 mutate(data = map(dt_type,function(dt_type){
                         filelist <- file_path[str_which(file_name,dt_type)]
                         map_df(filelist,openxlsx::read.xlsx)
