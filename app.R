@@ -65,7 +65,7 @@ ui <- dashboardPage(
                                                 downloadButton('download',label = '点此下载结题报告')
                                         ),
                                         mainPanel(
-                                                textOutput('info'),
+                                                h3(textOutput('info')),
                                                 hr(),
                                                 textOutput('Update_info'),
                                                 hr(),
@@ -162,7 +162,7 @@ server <- function(input, output) {
         
         ##文件上传1
         output$Update_info <- renderText({
-                "2020.12.03更新：更换了新的实验记录模板，修复了此前模板有时无法生成报告的bug。"
+                "2021.01.21更新：原分子、病毒和细胞信息表已全部更换为分子、病毒和细胞实验记录表。"
         })
         output$pic_upload1 <- renderUI({
                 if(is.null(input$vector_fun)){
@@ -241,7 +241,8 @@ server <- function(input, output) {
         ##信息表检查
         
         output$info <- renderText({
-                input_test(input$info_file$name,
+                input_test(file_name=input$info_file$name,
+                           file_path=input$info_file$datapath,
                            project2=input$vector_type)
         })
 
