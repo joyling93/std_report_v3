@@ -122,7 +122,7 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
                 select(载体编号,载体描述,载体类型,滴度,规格,数量) %>% 
                 flextable()%>%
                 add_header_lines("产品信息速览表")%>%
-                add_header_lines('fw-43')%>%
+                add_header_lines(id)%>%
                 bold(part = 'header')%>%
                 border_inner_h(border = fp_border(color="black", width = 1),part = 'body' )%>%
                 align(align = 'center',part = 'all')%>%
@@ -172,11 +172,11 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
         
         my_doc %>%
                 cursor_bookmark("contract_num")%>%
-                body_add_par('fw-40',style  = 'Subtitle')%>%
+                body_add_par(id,style  = 'Subtitle')%>%
                 cursor_bookmark("date")%>%
                 body_add_par(value = Sys.Date(),style  = 'Subtitle')%>%
                 cursor_bookmark("theme")%>%
-                body_add_par(value = paste0('项目名称:',project2),style  = 'Subtitle')%>%
+                body_add_par(value = paste0('项目名称:',project1,project2),style  = 'Subtitle')%>%
                 cursor_bookmark("pre_read_ft")%>%
                 body_add_flextable(pre_read_ft,align='center')
         
@@ -293,7 +293,7 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
         
         print(my_doc,file.path(temp_dir,
                                id,
-                               paste('test',
+                               paste(unique(dt2$生产主任务标题),
                                      '结题报告.docx',
                                      sep = '-')
         ))
