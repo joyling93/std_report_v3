@@ -16,6 +16,7 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
         
         #从主标题中提取id
         id <- str_extract(unique(dt2$生产主任务标题),'fw-\\d+')
+        custom <- str_match(unique(dt2$生产主任务标题)[1],'生产主任务-(.*)-.*')[,2]
         
         if(str_detect(project2,'载体')){
                 t1 <- 
@@ -302,7 +303,7 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
         #生成标签用数据
         label.file <- pre_read%>%
                 mutate(订单编号=id,
-                           客户姓名='老王',
+                           客户姓名=custom,
                            储存条件=if_else(stringr::str_detect(载体类型,'病毒',),
                                         '-80℃','-20℃'
                            ))
