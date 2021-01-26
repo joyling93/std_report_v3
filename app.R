@@ -88,9 +88,9 @@ ui <- dashboardPage(
                                         br(),
                                         br(),
                                         sidebarPanel(
-                                                selectInput('input_type1','选择归档信息种类',
-                                                            c('实验记录表')),
-                                                fileInput('excel_file',
+                                                selectInput('archieve_type','选择归档信息种类',
+                                                            c('生产任务','销售任务','记录表')),
+                                                fileInput('db_file',
                                                           label = '上传excel文件',
                                                           multiple = T),
                                                 #actionButton('report_download',label = '下载结题报告'),
@@ -99,8 +99,9 @@ ui <- dashboardPage(
                                                 
                                         ),
                                         mainPanel(
-                                                #textOutput('Update_info'),
                                                 textOutput('file_list'),
+                                                hr(),
+                                                h3(textOutput('archieve_status')),
                                                 hr(),
                                                 #textOutput('feedback_info')
                                         )
@@ -284,25 +285,21 @@ server <- function(input, output) {
         ###归档系统
         ##文件上传列表1
         output$file_list <- renderText({
-                input$excel_file$name
-                input$excel_file$datapath
+                paste0('上传文件列表：',str_c(input$db_file$name,collapse = '、'))
         })
         
         ##文件归档
         observeEvent(input$archive, {
-                progress <- shiny::Progress$new()
-                on.exit(progress$close)
-                progress$set('读取文件',value=0.5)
-                progress$set('归档中。。。',value=0.75)
-                db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
-                archive_files(
-                        filepath=input$excel_file$datapath,
-                        filename=input$excel_file$name,
-                        db=db
+                output$archieve_status <- renderText({
+                        db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
+                        status <- archive_files(
+                                type=input$archieve_type,
+                                filepath=input$db_file$datapath,
+                                db=db
                         )
-                DBI::dbDisconnect(db)
-                progress$set('生成完成',value=1)
-                
+                        DBI::dbDisconnect(db)
+                        status
+                })
         })
         
         ###统计系统
@@ -310,7 +307,7 @@ server <- function(input, output) {
                 output$report1 <- DT::renderDT({
                         req(credentials()$user_auth)
                         db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
-                        dt <- dbReadTable(db,'分子信息表')
+                        dt <- dbReadTable(db,'product_db')
                         DBI::dbDisconnect(db)
                         dt
                 })
