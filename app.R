@@ -3,6 +3,7 @@ options(shiny.maxRequestSize = 10000*1024^2)
 source("./bin/report_generate.R",encoding = 'UTF8')
 source('./bin/archive.R',encoding = 'UTF8')
 source('./bin/input_test.R',encoding = 'UTF8')
+source('./bin/statistic.R',encoding = 'UTF8')
 library(shiny)
 library(shinydashboard)
 library(officer)
@@ -18,6 +19,7 @@ library(RSQLite)
 library(shinyauthr)
 library(shinyjs)
 library(purrr)
+library(webshot)
 
 temp_dir <- tempdir()
 
@@ -28,6 +30,17 @@ user_base <- data.frame(
         name = c("User One", "User Two"),
         stringsAsFactors = FALSE,
         row.names = NULL
+)
+
+DT_options_list <- list(
+        paging = FALSE,
+        searching = TRUE,
+        fixedColumns = TRUE,
+        autoWidth = TRUE,
+        ordering = TRUE,
+        dom = 'tB',
+        keys=TRUE,
+        buttons = c('copy', 'csv', 'excel')
 )
 # Define UI for data upload app ----
 ui <- dashboardPage(
@@ -115,9 +128,9 @@ ui <- dashboardPage(
                                         br(),
                                         
                                         sidebarPanel(
-                                                selectInput('input_type2','选择统计种类',
-                                                            c('实验记录表')),
-                                                #dateInput('report_date',label = '选择统计日期',value = date('2020-09-01')),
+                                                selectInput('selected_db','选择统计种类',
+                                                            c('生产任务','销售任务','记录表')),
+                                                dateInput('time_span',label = '选择统计日期',value = today()),
                                                 actionButton('statistic',label='统计'),
                                         ),
                                         mainPanel(
@@ -127,9 +140,20 @@ ui <- dashboardPage(
                                                 div(class = "pull-right", logoutUI(id = "logout")),
                                                 # add login panel UI function
                                                 loginUI(id = "login"),
+                                                hr(),
                                                 shinycssloaders::withSpinner(
-                                                        DT::DTOutput('report1')
+                                                        DT::DTOutput('DT1')
+                                                ),
+                                                shinycssloaders::withSpinner(
+                                                        DT::DTOutput('DT2')
+                                                ),
+                                                shinycssloaders::withSpinner(
+                                                        DT::DTOutput('DT3')
+                                                ),
+                                                shinycssloaders::withSpinner(
+                                                        DT::DTOutput('DT4')
                                                 )
+                                                
                                         )
                                 )
                         )
@@ -214,30 +238,6 @@ server <- function(input, output) {
                         print(str_c(input$pic2$name,collapse = '\t'))
                 }
         })
-        ##文件上传3 上传质粒和病毒感染图片
-        # output$pic_upload3 <- renderUI({
-        #         if(is.null(input$vector_type)){
-        #                 return()
-        #         }else{
-        #                 switch(input$vector_type,
-        #                        '病毒包装'=fileInput('pic3',
-        #                                         label = '上传质粒和病毒感染图片',
-        #                                         multiple = T),
-        #                        
-        #                        '载体构建和病毒包装'=fileInput('pic3',
-        #                                              label = '上传质粒和病毒感染图片',
-        #                                              multiple = T)
-        #                 )
-        #         }
-        # })
-        ##文件上传列表3 显示上传图片名称
-        # output$upload3_list <- renderUI({
-        #         if(is.null(input$vector_type)){
-        #                 return()
-        #         }else{
-        #                 print(str_c(input$pic3$name,collapse = '\t'))
-        #         }
-        # })
         
         ##信息表检查
         
@@ -304,13 +304,42 @@ server <- function(input, output) {
         
         ###统计系统
         observeEvent(input$statistic,{
-                output$report1 <- DT::renderDT({
-                        req(credentials()$user_auth)
-                        db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
-                        dt <- dbReadTable(db,'product_db')
-                        DBI::dbDisconnect(db)
-                        dt
-                })
+                if(input$selected_db=='生产任务'){
+                        dt <- db_clean('product_db')
+                        output_list <- delay_cal(dt,input$time_span)
+                        
+                        output$DT1 <-  DT::renderDT({
+                                #req(credentials()$user_auth)
+                                output_list[[1]]
+                        },
+                        extensions = c('Buttons','Responsive','KeyTable'),
+                        options = DT_options_list)
+                        
+                        output$DT2 <-  DT::renderDT({
+                                #req(credentials()$user_auth)
+                                output_list[[2]]
+                        },
+                        extensions = c('Buttons','Responsive','KeyTable'),
+                        options = DT_options_list)
+                        
+                        output$DT3 <-  DT::renderDT({
+                                #req(credentials()$user_auth)
+                                output_list[[3]]
+                        },
+                        extensions = c('Buttons','Responsive','KeyTable'),
+                        options = DT_options_list)
+                        
+                        output$DT4 <-  DT::renderDT({
+                                #req(credentials()$user_auth)
+                                output_list[[4]]
+                        },
+                        extensions = c('Buttons','Responsive','KeyTable'),
+                        options = DT_options_list)
+                }else if(input$selected_db=='销售任务'){
+                        dt <- db_clean('seal_db')
+                }else{
+                        dt <- db_clean('record_db')
+                }
         })
         
 }

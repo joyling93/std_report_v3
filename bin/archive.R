@@ -50,18 +50,22 @@ record_db <-
 function(filename,filepath,db){
         if(any(stringr::str_detect(filename,'分子实验记录表'))){
                 filelist <- filepath[stringr::str_which(filename,'分子实验记录表')]
-                dt <- bind_rows(purrr::map(filelist,openxlsx::read.xlsx))
+                dt <- bind_rows(purrr::map(filelist,openxlsx::read.xlsx)) %>% 
+                        mutate(import_time=Sys.time())
                 dbWriteTable(db,'分子实验记录表',dt,append = TRUE)
         }
         if(any(stringr::str_detect(filename,'病毒实验记录表'))){
                 filelist <- stringr::str_subset(filepath,'病毒实验记录表')
-                dt <- bind_rows(purrr::map(filelist,openxlsx::read.xlsx))
+                dt <- bind_rows(purrr::map(filelist,openxlsx::read.xlsx)) %>% 
+                        mutate(import_time=Sys.time())
                 dbWriteTable(db,'病毒实验记录表',dt,append = TRUE)
         }
         if(any(stringr::str_detect(filename,'细胞实验记录表'))){
                 filelist <- stringr::str_subset(filepath,'细胞实验记录表')
-                dt <- bind_rows(purrr::map(filelist,openxlsx::read.xlsx))
+                dt <- bind_rows(purrr::map(filelist,openxlsx::read.xlsx)) %>% 
+                        mutate(import_time=Sys.time())
                 dbWriteTable(db,'细胞实验记录表',dt,append = TRUE)
         }
+        out_info <- '归档成功'
 }
 
