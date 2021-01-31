@@ -1,6 +1,5 @@
 # library(RSQLite)
-#  dt <- db_clean('product_db') %>% 
-#          filter(是否是子任务=='Y') 
+#  dt <- db_clean('product_db') %>% filter(是否是子任务=='Y') 
 # dt2 <- dt %>% 
 #         slice_head(n=5) %>% 
 #         mutate(
@@ -36,11 +35,19 @@ workday_cal <- function(x,y){
 }
 
 # 计算生产部门延期率，产能
-delay_cal <- function(dt,time_span){
+delay_cal <- function(dt,time_span,period_type){
+        time_filter <- switch(period_type,
+                              '周度' = function(x){
+                                      as.character(cut(x,'week'))
+                              },
+                              '月度' = month,
+                              '年度' = year)
+
         dt <-
                 dt %>%
                 filter(是否是子任务=='Y') %>%
                 mutate(
+                        统计周期 = time_filter(Su.实验实际完成日期),
                         CD.组成产能 = as.character(CD.组成产能),
                         CD.产能类型 = strsplit(CD.产能类型,split="|", fixed=TRUE),
                         CD.组成产能 = strsplit(CD.组成产能,split="|", fixed=TRUE),
@@ -49,11 +56,11 @@ delay_cal <- function(dt,time_span){
                         project_delay = if_else(delay_ratio>0,0,1),
                         distribution_delay = if_else((开始时间-Su.实验实际开始日期)/ddays(1)>1,1,0)
                 ) %>%
-                filter(month(Su.实验实际完成日期)==month(time_span))
+                filter(统计周期==time_filter(time_span))
         
         dt1 <- 
                 dt %>%
-                group_by(CE.实验执行人姓名) %>%
+                group_by(CE.实验执行人姓名,统计周期) %>%
                 summarise(延期度 = round(sum(delay_ratio),digits = 1),
                              延期率 = round(sum(project_delay)/n(),digits = 1),
                              产能 = sum(CD.子产能),
@@ -62,7 +69,7 @@ delay_cal <- function(dt,time_span){
         
         dt2 <- 
                 dt %>%
-                group_by(CD.子任务类型) %>%
+                group_by(CD.子任务类型,统计周期) %>%
                 summarise(延期度 = round(sum(delay_ratio),digits = 1),
                              延期率 = round(sum(project_delay)/n(),digits = 1),
                              产能 = sum(CD.子产能),
@@ -71,15 +78,15 @@ delay_cal <- function(dt,time_span){
         
         dt3 <- 
                 dt %>% 
-                select(CD.产能类型,CD.组成产能) %>% 
+                select(CD.产能类型,CD.组成产能,统计周期) %>% 
                 tidyr::unnest() %>% 
                 mutate(CD.组成产能=as.numeric(CD.组成产能)) %>% 
-                group_by(CD.产能类型) %>% 
+                group_by(CD.产能类型,统计周期) %>% 
                 summarise(产能=sum(CD.组成产能))
                 
         dt4 <-         
                 dt %>%
-                group_by(Su.实验分配人姓名) %>%
+                group_by(Su.实验分配人姓名,统计周期) %>%
                 summarise(
                         任务派发延期率 = round(sum(distribution_delay)/n(),digits = 1)
                 )

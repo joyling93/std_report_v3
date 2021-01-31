@@ -25,8 +25,8 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
                         mutate(抗性=paste0('质粒',抗性)) %>% 
                         rename(规格=质粒规格,数量=质粒数量,载体类型=抗性)
                 
-                
-                t2 <-  dt2 %>% 
+                t2 <-  
+                        dt2 %>% 
                         select(载体编号,载体描述,菌种,甘油菌规格,甘油菌数量) %>% 
                         tidyr::drop_na() %>% 
                         mutate(菌种=paste0('甘油菌(',菌种,')')) %>% 
@@ -51,14 +51,12 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
                 t1 <- data.frame(载体编号=character(),
                                      载体描述=character(), 
                                      载体类型=character(), 
-                                     
                                      规格=character(),
                                      数量=character())
                 
                 t2 <- data.frame(载体编号=character(),
                                      载体描述=character(), 
                                      载体类型=character(), 
-                                     
                                      规格=character(),
                                      数量=character()) 
         }
@@ -83,27 +81,6 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
                         ) %>% 
                         select(载体编号,载体描述,载体类型,滴度,出库规格,出库数量) %>% 
                         rename(规格=出库规格,数量=出库数量)
-                
-                # else if(project2=='病毒包装'){
-                #         t3 <- 
-                #                 dt2 %>% 
-                #                 select(载体编号,载体描述,载体类型,病毒类型,
-                #                            `病毒滴度(10的8次方)`,出库规格,出库数量) %>% 
-                #                 tidyr::drop_na() %>% 
-                #                 mutate(unit=map(病毒类型,function(x){
-                #                         if(str_detect(x,'LV')){
-                #                                 'TU/mL'
-                #                         }else if(str_detect(x,'AAV')){
-                #                                 'vg/mL'
-                #                         }else if(str_detect(x,'AD')){
-                #                                 'ifu/mL'
-                #                         }}),
-                #                        病毒滴度=`病毒滴度(10的8次方)`*1e8,
-                #                        滴度 = paste0(病毒滴度,unit)
-                #                 ) %>% 
-                #                 select(载体编号,滴度,出库规格,出库数量) %>% 
-                #                 rename(规格=出库规格,数量=出库数量)
-                # }
         }else{
                 t3 <- data.frame(载体编号=character(),
                                      载体描述=character(), 
@@ -227,7 +204,7 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
                         pic_insert(my_doc,'载体图谱','vector_map') 
                 }
         }else if(project2=='病毒包装'){
-                #picture_list <- list('酶切鉴定结果')
+                
                 my_doc %>%
                         cursor_reach('基因序列')%>%
                         body_remove()%>%
@@ -306,7 +283,8 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
                            客户姓名=custom,
                            储存条件=if_else(stringr::str_detect(载体类型,'病毒',),
                                         '-80℃','-20℃'
-                           ))
+                           )) %>% 
+                select(载体编号,载体描述,载体类型,滴度,规格,订单编号,客户姓名,数量,储存条件)
         
         openxlsx::write.xlsx(label.file,
                              file.path(temp_dir,

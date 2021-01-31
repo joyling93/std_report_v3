@@ -131,6 +131,8 @@ ui <- dashboardPage(
                                                 selectInput('selected_db','选择统计种类',
                                                             c('生产任务','销售任务','记录表')),
                                                 dateInput('time_span',label = '选择统计日期',value = today()),
+                                                selectInput('period_type','选择统计种类',
+                                                            c('周度','月度','年度'),selected='周度'),
                                                 actionButton('statistic',label='统计'),
                                         ),
                                         mainPanel(
@@ -306,7 +308,7 @@ server <- function(input, output) {
         observeEvent(input$statistic,{
                 if(input$selected_db=='生产任务'){
                         dt <- db_clean('product_db')
-                        output_list <- delay_cal(dt,input$time_span)
+                        output_list <- delay_cal(dt,input$time_span,input$period_type)
                         
                         output$DT1 <-  DT::renderDT({
                                 #req(credentials()$user_auth)
