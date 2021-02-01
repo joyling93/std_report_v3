@@ -15,13 +15,13 @@
 
 library(RSQLite)
 db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
-dt <- read.csv('debug/生产任务归档测试2.csv')
-
+dt <- read.csv('debug/销售任务归档测试.csv') %>% 
+        dplyr::mutate(import_time=Sys.time())
+dbWriteTable(db,'sale_db',dt,overwrite=T)
+dbDisconnect(db)
 
 colnames(dt2)%in%colnames(dt)
-
-
-dt2 <- dbReadTable(db,'product_db')
+dt2 <- dbReadTable(db,'sale_db')
 
 db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
 blank <- 
@@ -32,6 +32,6 @@ dt <- dt %>%
         dplyr::mutate(across(everything(),~blank(.x))) %>% 
         tidyr::drop_na() %>% 
         dplyr::mutate(import_time=Sys.time())
-dbWriteTable(db,'product_db',dt,overwrite=T)
+dbWriteTable(db,'sale_db',dt,overwrite=T)
 dbDisconnect(db)
 

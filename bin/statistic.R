@@ -19,13 +19,31 @@
 db_clean <- function(db_type){
         db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
         dt <- dbReadTable(db,db_type)
+        if(db_type=='product_db'){
+                dt_extra <- dbReadTable(db,'sale_db') %>% 
+                        arrange(desc(import_time)) %>% 
+                        filter(!duplicated(任务ID)) %>% 
+                        select(任务ID,A.方案设计者,A.方案指派日期) %>% 
+                        rename(主任务ID=任务ID)
+                        
+                dt <- dt %>% 
+                        mutate(主任务ID = unlist(map(标题,~str_extract(.x,'fw-\\d+')))) %>% 
+                        left_join(dt_extra) %>% 
+                        arrange(desc(import_time)) %>% 
+                        filter(!duplicated(任务ID)) %>% 
+                        mutate(across(matches('时间|日期'),ymd_hm),
+                               across(contains('姓名'),as.factor)
+                        )
+        }else{
+                dt <- dt %>% 
+                        arrange(desc(import_time)) %>% 
+                        filter(!duplicated(任务ID)) %>% 
+                        mutate(across(matches('时间|日期'),ymd_hm),
+                               across(contains('姓名'),as.factor)
+                        )
+        }
         DBI::dbDisconnect(db)
-        dt <- dt %>% 
-                arrange(desc(import_time)) %>% 
-                filter(!duplicated(任务ID)) %>% 
-                mutate(across(matches('时间|日期'),ymd_hm),
-                       across(contains('姓名'),as.factor)
-                       )
+        return(dt)
 }
 
 
@@ -42,7 +60,6 @@ delay_cal <- function(dt,time_span,period_type){
                               },
                               '月度' = month,
                               '年度' = year)
-
         
         dt <-
                 dt %>%
@@ -92,7 +109,16 @@ delay_cal <- function(dt,time_span,period_type){
                         任务派发延期率 = round(sum(distribution_delay)/n(),digits = 1)
                 )
         
-        return(list(dt1,dt2,dt3,dt4))
+        dt5 <- 
+                dt %>% 
+                filter(!is.na(A.方案设计者)) %>% 
+                mutate(design_delay = if_else((开始时间-A.方案指派日期)/ddays(1)>2,1,0)) %>% 
+                group_by(A.方案设计者) %>% 
+                summarise(方案设计延期数 = sum(design_delay),
+                                 方案设计延期率 = round(方案设计延期数/n(),digits = 1)
+                )
+        
+        return(list(dt1,dt2,dt3,dt4,dt5))
 }
 
 

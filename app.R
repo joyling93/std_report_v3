@@ -40,7 +40,7 @@ DT_options_list <- list(
         ordering = TRUE,
         dom = 'tB',
         keys=TRUE,
-        buttons = c('copy', 'csv', 'excel')
+        buttons = c('copy','excel')
 )
 # Define UI for data upload app ----
 ui <- dashboardPage(
@@ -134,6 +134,9 @@ ui <- dashboardPage(
                                                 selectInput('period_type','选择统计种类',
                                                             c('周度','月度','年度'),selected='周度'),
                                                 actionButton('statistic',label='统计'),
+                                                #downloadButton('download_stat',label = '点此下载统计数据'),
+                                                hr()
+                                                
                                         ),
                                         mainPanel(
                                                 # must turn shinyjs on
@@ -154,6 +157,9 @@ ui <- dashboardPage(
                                                 ),
                                                 shinycssloaders::withSpinner(
                                                         DT::DTOutput('DT4')
+                                                ),
+                                                shinycssloaders::withSpinner(
+                                                        DT::DTOutput('DT5')
                                                 )
                                                 
                                         )
@@ -337,12 +343,37 @@ server <- function(input, output) {
                         },
                         extensions = c('Buttons','Responsive','KeyTable'),
                         options = DT_options_list)
+                        
+                        output$DT5 <-  DT::renderDT({
+                                #req(credentials()$user_auth)
+                                output_list[[5]]
+                        },
+                        extensions = c('Buttons','Responsive','KeyTable'),
+                        options = DT_options_list)
+                        
+                        #' data_dt <- reactive({
+                        #'         #'tb_dashboard/副本签单回款.xlsx'
+                        #'         output_list[[5]]
+                        #' })
+
                 }else if(input$selected_db=='销售任务'){
                         dt <- db_clean('seal_db')
                 }else{
                         dt <- db_clean('record_db')
                 }
+                
+                
         })
+        
+        # ##统计数据下载
+        # output$download_stat <- downloadHandler(
+        #         filename=function(){
+        #                 y <- paste0('统计数据.csv')
+        #         },
+        #         content=function(file){
+        #                 data_dt()
+        #         }
+        # )
         
 }
         
