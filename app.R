@@ -189,7 +189,7 @@ server <- function(input, output) {
         
         ##文件上传1
         output$Update_info <- renderText({
-                "2021.01.21更新：原分子、病毒和细胞信息表已全部更换为分子、病毒和细胞实验记录表。"
+                "2021.02.01更新：1、修改了标签打印表格的表头顺序；2、分子实验记录表 载体类型 删除、病毒实验记录表 载体类型 变为多选一。"
         })
         output$pic_upload1 <- renderUI({
                 if(is.null(input$vector_fun)){

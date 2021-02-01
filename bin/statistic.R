@@ -43,6 +43,7 @@ delay_cal <- function(dt,time_span,period_type){
                               '月度' = month,
                               '年度' = year)
 
+        
         dt <-
                 dt %>%
                 filter(是否是子任务=='Y') %>%
