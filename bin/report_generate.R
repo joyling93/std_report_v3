@@ -1,3 +1,8 @@
+file_name <- dir('debug/test/','.xlsx')
+file_path <- dir('debug/test/','.xlsx',full.names = T)
+project1 <- '干扰'
+project2 <- '载体构建和病毒包装'
+
 report_generate <- function(file_name,file_path,pic_name,pic_path,project1,project2,temp_dir){
         fontname <- "Arial"
         dt <- 

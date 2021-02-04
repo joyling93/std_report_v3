@@ -102,7 +102,7 @@ ui <- dashboardPage(
                                         br(),
                                         sidebarPanel(
                                                 selectInput('archieve_type','选择归档信息种类',
-                                                            c('生产任务','销售任务','记录表')),
+                                                            c('TB任务','记录表')),
                                                 fileInput('db_file',
                                                           label = '上传excel文件',
                                                           multiple = T),
@@ -313,7 +313,7 @@ server <- function(input, output) {
         ###统计系统
         observeEvent(input$statistic,{
                 if(input$selected_db=='生产任务'){
-                        dt <- db_clean('product_db')
+                        dt <- db_clean('db')
                         output_list <- delay_cal(dt,input$time_span,input$period_type)
                         
                         output$DT1 <-  DT::renderDT({
