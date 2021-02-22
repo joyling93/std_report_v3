@@ -1,7 +1,7 @@
-file_name <- dir('debug/test/','.xlsx')
-file_path <- dir('debug/test/','.xlsx',full.names = T)
-project1 <- '干扰'
-project2 <- '载体构建和病毒包装'
+# file_name <- dir('/Users/zhuomingx/Downloads/fw-765-慢病毒培养基减量测试-lw483/','.xlsx')
+# file_path <- dir('/Users/zhuomingx/Downloads/fw-765-慢病毒培养基减量测试-lw483/','.xlsx',full.names = T)
+# project1 <- '过表达'
+# project2 <- '病毒包装'
 
 report_generate <- function(file_name,file_path,pic_name,pic_path,project1,project2,temp_dir){
         fontname <- "Arial"
@@ -57,13 +57,13 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
                                      载体描述=character(), 
                                      载体类型=character(), 
                                      规格=character(),
-                                     数量=character())
+                                     数量=double())
                 
                 t2 <- data.frame(载体编号=character(),
                                      载体描述=character(), 
                                      载体类型=character(), 
                                      规格=character(),
-                                     数量=character()) 
+                                     数量=double()) 
         }
         
         
@@ -92,7 +92,7 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
                                      载体类型=character(), 
                                      滴度=character(),
                                      规格=character(),
-                                     数量=character()) 
+                                     数量=double()) 
         }
         
         

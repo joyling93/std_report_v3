@@ -52,7 +52,7 @@ workday_cal <- function(x,y){
 delay_cal <- function(dt,time_span,period_type){
         time_filter <- switch(period_type,
                               '周度' = function(x){
-                                      as.character(cut(x,'week'))
+                                      as.character(cut(x,'week',start.on.monday=F))
                               },
                               '月度' = month,
                               '年度' = year)
