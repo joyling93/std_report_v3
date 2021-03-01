@@ -1,12 +1,13 @@
 
-# filename <- dir('./debug/dbtest',pattern = '信息表.xlsx')
-# filepath <- dir('./debug/dbtest',pattern = '信息表.xlsx',full.names = T)
+# filename <- dir('./debug/test',pattern = '信息表.xlsx')
+# filepath <- dir('./debug/test',pattern = '全任务归档测试.xlsx',full.names = T)
 # archive_files(
 #         filepath=filepath,
 #         filename=filename,
 #         db=db
 # )
 # dbReadTable(db,'分子信息表')
+# db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
 
 archive_files <- function(type,filepath,db){
         out_info <- '请选择归档文件类型'
@@ -22,13 +23,18 @@ tb_db <- function(filepath,db){
         out_info <- '归档成功'
         dt <- openxlsx::loadWorkbook(filepath)
         # names(dt)
-        purrr::walk(names(dt),function(x){
-                y <- readWorkbook(dt,sheet=x)
-                y$import_time <- Sys.time()
+        dt_list <- 
+                purrr::map(names(dt),function(x){
+                y <- readWorkbook(dt,sheet=x,
+                                  skipEmptyCols=T)
+                y$import_time <- as.double(Sys.time())
                 colnames(y) <- str_replace_all(colnames(y),'\\"','')# 去除标题中多余“号
-                dbWriteTable(db,'db',y,append=T)
+                colnames(y) <- str_replace_all(colnames(y),'[-()（）]','.')# 转化标题中-为.
+                y <- y %>% 
+                        select(!where(~all(is.na(.x))))
         })
         dt_fin <- dbReadTable(db,'db') %>% 
+                bind_rows(dt_list) %>% 
                 arrange(desc(import_time)) %>% 
                 filter(!duplicated(任务ID))
         dbWriteTable(db,'db',dt_fin,overwrite=T)

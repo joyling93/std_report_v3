@@ -28,14 +28,16 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
                         dt2 %>% 
                         select(载体编号,载体描述,质粒规格,质粒数量,抗性) %>% 
                         mutate(抗性=paste0('质粒',抗性)) %>% 
-                        rename(规格=质粒规格,数量=质粒数量,载体类型=抗性)
+                        rename(规格=质粒规格,数量=质粒数量,载体类型=抗性) %>% 
+                        mutate(数量=as.character(数量))#避免与空表合并时出错
                 
                 t2 <-  
                         dt2 %>% 
                         select(载体编号,载体描述,菌种,甘油菌规格,甘油菌数量) %>% 
                         tidyr::drop_na() %>% 
                         mutate(菌种=paste0('甘油菌(',菌种,')')) %>% 
-                        rename(规格=甘油菌规格,数量=甘油菌数量,载体类型=菌种) 
+                        rename(规格=甘油菌规格,数量=甘油菌数量,载体类型=菌种)%>% 
+                        mutate(数量=as.character(数量)) 
                 
                 vector_info <- 
                         dt2 %>% 
@@ -57,13 +59,13 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
                                      载体描述=character(), 
                                      载体类型=character(), 
                                      规格=character(),
-                                     数量=double())
+                                     数量=character())
                 
                 t2 <- data.frame(载体编号=character(),
                                      载体描述=character(), 
                                      载体类型=character(), 
                                      规格=character(),
-                                     数量=double()) 
+                                     数量=character()) 
         }
         
         
@@ -85,14 +87,15 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
                                滴度 = paste0(病毒滴度,unit)
                         ) %>% 
                         select(载体编号,载体描述,载体类型,滴度,出库规格,出库数量) %>% 
-                        rename(规格=出库规格,数量=出库数量)
+                        rename(规格=出库规格,数量=出库数量)%>% 
+                        mutate(数量=as.character(数量))
         }else{
                 t3 <- data.frame(载体编号=character(),
                                      载体描述=character(), 
                                      载体类型=character(), 
                                      滴度=character(),
                                      规格=character(),
-                                     数量=double()) 
+                                     数量=character()) 
         }
         
         

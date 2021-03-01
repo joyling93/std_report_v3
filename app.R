@@ -20,6 +20,7 @@ library(shinyauthr)
 library(shinyjs)
 library(purrr)
 library(webshot)
+library(openxlsx)
 
 temp_dir <- tempdir()
 
@@ -33,7 +34,7 @@ user_base <- data.frame(
 )
 
 DT_options_list <- list(
-        paging = FALSE,
+        paging = F,
         searching = TRUE,
         fixedColumns = TRUE,
         autoWidth = TRUE,
@@ -134,7 +135,7 @@ ui <- dashboardPage(
                                                 selectInput('period_type','选择统计种类',
                                                             c('周度','月度','年度'),selected='周度'),
                                                 actionButton('statistic',label='统计'),
-                                                #downloadButton('download_stat',label = '点此下载统计数据'),
+                                                downloadButton('download_stat',label = '点此下载统计数据'),
                                                 hr()
                                                 
                                         ),
@@ -147,7 +148,7 @@ ui <- dashboardPage(
                                                 loginUI(id = "login"),
                                                 hr(),
                                                 shinycssloaders::withSpinner(
-                                                        DT::DTOutput('DT1')
+                                                        DT::DTOutput('DT1',width = "100%",height = "30%")
                                                 ),
                                                 shinycssloaders::withSpinner(
                                                         DT::DTOutput('DT2')
@@ -313,7 +314,7 @@ server <- function(input, output) {
         ###统计系统
         observeEvent(input$statistic,{
                 if(input$selected_db=='生产任务'){
-                        dt <- db_clean('db')
+                        dt <- db_clean('product_sec')
                         output_list <- delay_cal(dt,input$time_span,input$period_type)
                         
                         output$DT1 <-  DT::renderDT({
@@ -351,13 +352,43 @@ server <- function(input, output) {
                         extensions = c('Buttons','Responsive','KeyTable'),
                         options = DT_options_list)
                         
+                        
                         #' data_dt <- reactive({
                         #'         #'tb_dashboard/副本签单回款.xlsx'
                         #'         output_list[[5]]
-                        #' })
+                        #' }
+                        #' )
+                        
+                        output$download_stat <- downloadHandler(
+                                filename=function(){
+                                        y <- paste0('统计数据.xlsx')
+                                },
+                                content=function(file){
+                                        write.xlsx(output_list[[6]], file)
+                                }
+                        ) 
+                        
 
                 }else if(input$selected_db=='销售任务'){
-                        dt <- db_clean('seal_db')
+                        dt <- db_clean('seal_sec')
+                        output_list <- seal_cal(dt,input$time_span,input$period_type)
+                        output$DT1 <-  DT::renderDT({
+                                #req(credentials()$user_auth)
+                                output_list[[1]]
+                        },
+                        extensions = c('Buttons','Responsive','KeyTable'),
+                        options = DT_options_list)
+                        
+                        output$download_stat <- downloadHandler(
+                                filename=function(){
+                                        y <- paste0('统计数据.xlsx')
+                                },
+                                content=function(file){
+                                        write.xlsx(output_list[[1]], file)
+                                }
+                        )
+                        
+                        
                 }else{
                         dt <- db_clean('record_db')
                 }
@@ -365,15 +396,6 @@ server <- function(input, output) {
                 
         })
         
-        # ##统计数据下载
-        # output$download_stat <- downloadHandler(
-        #         filename=function(){
-        #                 y <- paste0('统计数据.csv')
-        #         },
-        #         content=function(file){
-        #                 data_dt()
-        #         }
-        # )
         
 }
         
