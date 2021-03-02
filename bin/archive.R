@@ -37,6 +37,12 @@ tb_db <- function(filepath,db){
                 bind_rows(dt_list) %>% 
                 arrange(desc(import_time)) %>% 
                 filter(!duplicated(任务ID))
+        
+        ##预处理一些遗留问题
+        dt_fin <- 
+        dt_fin %>% mutate(CD.产能类型 = map_chr(CD.产能类型,str_replace_all,pattern='拼装和酶切连接，LR载体',
+                                            replacement='拼装和酶切连接；LR载体'))
+        
         dbWriteTable(db,'db',dt_fin,overwrite=T)
         # dt_old <- dbReadTable(db,'db')
         # dt_new <- bind_rows(purrr::map(filepath,read.csv)) %>% 

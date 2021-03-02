@@ -338,33 +338,26 @@ server <- function(input, output) {
                         extensions = c('Buttons','Responsive','KeyTable'),
                         options = DT_options_list)
                         
-                        output$DT4 <-  DT::renderDT({
-                                #req(credentials()$user_auth)
-                                output_list[[4]]
-                        },
-                        extensions = c('Buttons','Responsive','KeyTable'),
-                        options = DT_options_list)
+                        # output$DT4 <-  DT::renderDT({
+                        #         #req(credentials()$user_auth)
+                        #         output_list[[4]]
+                        # },
+                        # extensions = c('Buttons','Responsive','KeyTable'),
+                        # options = DT_options_list)
                         
-                        output$DT5 <-  DT::renderDT({
-                                #req(credentials()$user_auth)
-                                output_list[[5]]
-                        },
-                        extensions = c('Buttons','Responsive','KeyTable'),
-                        options = DT_options_list)
-                        
-                        
-                        #' data_dt <- reactive({
-                        #'         #'tb_dashboard/副本签单回款.xlsx'
-                        #'         output_list[[5]]
-                        #' }
-                        #' )
+                        # output$DT5 <-  DT::renderDT({
+                        #         #req(credentials()$user_auth)
+                        #         output_list[[5]]
+                        # },
+                        # extensions = c('Buttons','Responsive','KeyTable'),
+                        # options = DT_options_list)
                         
                         output$download_stat <- downloadHandler(
                                 filename=function(){
                                         y <- paste0('统计数据.xlsx')
                                 },
                                 content=function(file){
-                                        write.xlsx(output_list[[6]], file)
+                                        write.xlsx(output_list[[4]], file)
                                 }
                         ) 
                         
