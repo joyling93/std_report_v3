@@ -18,12 +18,12 @@ db_clean <- function(db_type){
                         filter(任务类型=='销售序列模板') %>% 
                         arrange(desc(import_time)) %>% 
                         filter(!duplicated(任务ID)) %>% 
-                        select(任务ID,A.方案设计者,A.方案指派日期,S.合同金额) %>% 
+                        select(任务ID,A.方案设计者,A.方案指派日期,S.合同金额,S.消费金额) %>% 
                         rename(主任务ID=任务ID)
                         
                 dt2 <- dt %>% 
                         filter(任务类型=='生产序列模板') %>% 
-                        select(-c(A.方案设计者,A.方案指派日期,S.合同金额)) %>% 
+                        select(-c(A.方案设计者,A.方案指派日期,S.合同金额,S.消费金额)) %>% 
                         mutate(主任务ID = unlist(map(标题,
                                                     ~tolower(str_extract(.x,regex('fw-\\d+', ignore_case = T)))))) %>% 
                         left_join(dt_extra) %>% 
@@ -80,8 +80,9 @@ workday_cal <- function(x,y){
 delay_cal <- function(dt,time_span,period_type){
         time_filter <- switch(period_type,
                               '周度' = function(x){
-                                      as.character(cut(x,'week',start.on.monday=F))
-                              },
+                                      ymd(cut(x+ddays(2),'week',start.on.monday=F))-ddays(2)
+                                      #延后实际日期使周数从周五开始
+                                      },
                               '月度' = month,
                               '年度' = year)
         
@@ -94,6 +95,7 @@ delay_cal <- function(dt,time_span,period_type){
                         CD.组成产能 = as.character(CD.组成产能),
                         CD.产能类型 = strsplit(CD.产能类型,split="|", fixed=TRUE),
                         CD.组成产能 = strsplit(CD.组成产能,split="|", fixed=TRUE),
+                        S.消费金额 = strsplit(S.消费金额,split='[[:punct:]]'),
                         workday = unlist(purrr::map2(Su.实验实际开始日期,Su.实验实际完成日期,workday_cal)),
                         delay_ratio = (预期周期-workday)/预期周期,
                         project_delay = if_else(delay_ratio>=0,0,1),
@@ -110,8 +112,9 @@ delay_cal <- function(dt,time_span,period_type){
                 group_by(CE.实验执行人姓名,统计周期,CD.子任务类型) %>% 
                 # select(CE.实验执行人姓名,统计周期,CD.子任务类型,delay_ratio,project_delay,
                 #        开始时间,截止时间,Su.实验实际开始日期,Su.实验实际完成日期,预期周期,workday)
-                summarise(延期度 = round(sum(delay_ratio),digits = 2)*100,
-                             延期率 = round(sum(project_delay)/n(),digits = 2)*100,
+                summarise(完成项目数 = n(),
+                        延期度 = round(sum(delay_ratio)/完成项目数,digits = 2)*100,
+                             延期率 = round(sum(project_delay)/完成项目数,digits = 2)*100,
                              CD.子产能 = sum(CD.子产能)) %>% 
                 arrange(CD.子任务类型) %>% 
                 rename(姓名=CE.实验执行人姓名)
@@ -120,17 +123,18 @@ delay_cal <- function(dt,time_span,period_type){
         dt2 <- 
                 dt1 %>% 
                 group_by(CD.子任务类型,统计周期) %>%
-                summarise(延期度 = sum(延期度),
-                             延期率 = sum(延期率),
+                summarise(延期度 = as.integer(sum(延期度)/n()),
+                             延期率 = as.integer(sum(延期率)/n()),
                              姓名 = 'total',
-                             产值 = sum(CD.子产能)
+                             产值 = sum(CD.子产能),
+                             完成项目数 = sum(完成项目数)
                 ) 
         
         #个人按任务类型计算产值
         dt3 <- 
                 dt %>% 
                 filter(是否是子任务=='Y') %>%
-                tidyr::unnest(c(CD.产能类型,CD.组成产能)) %>% 
+                tidyr::unnest(c(CD.产能类型,CD.组成产能),keep_empty=T) %>% 
                 mutate(CD.组成产能=as.numeric(CD.组成产能)) %>% 
                 group_by(CE.实验执行人姓名,CD.产能类型,CD.子任务类型,统计周期) %>% 
                 summarise(产值=sum(CD.组成产能)) %>% 
@@ -141,7 +145,8 @@ delay_cal <- function(dt,time_span,period_type){
         left_join(dt3,dt1) %>% 
                 bind_rows(dt2) %>% 
                 arrange(CD.子任务类型,desc(姓名),产值) %>% 
-                select(-CD.子产能)
+                select(-CD.子产能) %>% 
+                rename('延期度%'=延期度,'延期率%'=延期率)
                 
         dt_summary2 <-         
                 dt %>% 
@@ -155,14 +160,14 @@ delay_cal <- function(dt,time_span,period_type){
                 dt %>% 
                 filter(是否是子任务=='N',!is.na(A.方案设计者)) %>%
                 drop_na(开始时间,A.方案指派日期,A.方案设计者) %>% 
-                #select(A.方案设计者,开始时间,A.方案指派日期)
                 mutate(design_delay = if_else((开始时间-A.方案指派日期)/ddays(1)>2,1,0)) %>% 
                 group_by(A.方案设计者) %>% 
+                # select(开始时间,A.方案指派日期,A.方案设计者,S.合同金额,S.消费金额)
                 summarise(方案设计延期数 = sum(design_delay),
                                  方案设计延期率 = round(方案设计延期数/n(),digits = 1),
-                                 延期任务ID = str_c(任务ID[design_delay==1],collapse = ',')
-                                 ,
-                                 方案设计产值 = sum(as.numeric(S.合同金额))
+                                 延期任务ID = str_c(任务ID[design_delay==1],collapse = ','),
+                                 方案设计产值 = sum(as.numeric(S.合同金额))+
+                                         sum(as.numeric(unlist(S.消费金额)))
                 )
         
         return(list(dt_summary1,dt_summary2,dt_summary3,dt))

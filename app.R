@@ -41,6 +41,8 @@ DT_options_list <- list(
         ordering = TRUE,
         dom = 'tB',
         keys=TRUE,
+        # rownames = FALSE,
+        # scrollY = T,
         buttons = c('copy','excel')
 )
 # Define UI for data upload app ----
@@ -148,7 +150,7 @@ ui <- dashboardPage(
                                                 loginUI(id = "login"),
                                                 hr(),
                                                 shinycssloaders::withSpinner(
-                                                        DT::DTOutput('DT1',width = "100%",height = "30%")
+                                                        DT::DTOutput('DT1')
                                                 ),
                                                 shinycssloaders::withSpinner(
                                                         DT::DTOutput('DT2')
