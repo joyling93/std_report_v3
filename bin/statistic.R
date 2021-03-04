@@ -2,7 +2,7 @@
 # db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
 # period_type <- '月度'
 # time_span <- today()-ddays(30)
-# time_span <- "2021-02-24"
+# time_span <- "2021-01-24"
 # db_type <- 'product_sec'
 # 数据去重和日期处理
 db_clean <- function(db_type){
@@ -73,7 +73,7 @@ db_clean <- function(db_type){
 
 # 计算开始日期x到结束日期经历的工作日
 workday_cal <- function(x,y){
-        sum(wday(x+days(1:ceiling((y-x)/ddays(1))))%in%c(1:5))  
+        sum(wday(x+days(0:ceiling((y-x)/ddays(1))))%in%c(2:6))
 }
 
 # 计算生产部门延期率，产能
@@ -90,14 +90,14 @@ delay_cal <- function(dt,time_span,period_type){
                 dt %>%
                 drop_na(开始时间,截止时间,Su.实验实际开始日期,Su.实验实际完成日期) %>% 
                 mutate(
-                        预期周期 = unlist(purrr::map2(开始时间,截止时间,workday_cal)),
+                        预期周期 = map2_dbl(开始时间,截止时间,workday_cal),
                         统计周期 = time_filter(Su.实验实际完成日期),
                         CD.组成产能 = as.character(CD.组成产能),
                         CD.产能类型 = strsplit(CD.产能类型,split="|", fixed=TRUE),
                         CD.组成产能 = strsplit(CD.组成产能,split="|", fixed=TRUE),
                         S.消费金额 = strsplit(S.消费金额,split='[[:punct:]]'),
-                        workday = unlist(purrr::map2(Su.实验实际开始日期,Su.实验实际完成日期,workday_cal)),
-                        delay_ratio = (预期周期-workday)/预期周期,
+                        实际周期 = map2_dbl(Su.实验实际开始日期,Su.实验实际完成日期,workday_cal),
+                        delay_ratio = (预期周期-实际周期)/预期周期,
                         project_delay = if_else(delay_ratio>=0,0,1),
                         distribution_delay = if_else((开始时间-Su.实验实际开始日期)/ddays(1)>1,1,0)
                 ) %>%
@@ -107,15 +107,18 @@ delay_cal <- function(dt,time_span,period_type){
         dt1 <- 
                 dt %>%
                 filter(是否是子任务=='Y') %>% 
-                mutate(delay_ratio = if_else(CD.产能类型=='基因合成载体',0,delay_ratio),
-                       project_delay = if_else(CD.产能类型=='基因合成载体',0,project_delay)) %>% 
+                mutate(
+                        预期周期 = if_else(CD.产能类型=='基因合成载体',0,预期周期),
+                        实际周期 = if_else(CD.产能类型=='基因合成载体',0,实际周期),
+                        project_delay = if_else(CD.产能类型=='基因合成载体',NaN,project_delay)) %>% 
                 group_by(CE.实验执行人姓名,统计周期,CD.子任务类型) %>% 
-                # select(CE.实验执行人姓名,统计周期,CD.子任务类型,delay_ratio,project_delay,
-                #        开始时间,截止时间,Su.实验实际开始日期,Su.实验实际完成日期,预期周期,workday)
-                summarise(完成项目数 = n(),
-                        延期度 = round(sum(delay_ratio)/完成项目数,digits = 2)*100,
-                             延期率 = round(sum(project_delay)/完成项目数,digits = 2)*100,
-                             CD.子产能 = sum(CD.子产能)) %>% 
+                summarise(
+                        完成项目数 = n(),
+                        延期度 = round((sum(预期周期)-sum(实际周期))/sum(预期周期)
+                                    ,digits = 2)*100,
+                        延期率 = round(sum(project_delay,na.rm = T)/sum(!is.na(project_delay))
+                                         ,digits = 2)*100,
+                        CD.子产能 = sum(CD.子产能)) %>% 
                 arrange(CD.子任务类型) %>% 
                 rename(姓名=CE.实验执行人姓名)
 

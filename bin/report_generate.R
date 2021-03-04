@@ -20,7 +20,7 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
         
         
         #从主标题中提取id
-        id <- str_extract(unique(dt2$生产主任务标题),'fw-\\d+')
+        id <- str_extract(unique(dt2$生产主任务标题),regex('fw-\\d+',ignore_case = T))
         custom <- str_match(unique(dt2$生产主任务标题)[1],'生产主任务-(.*)-.*')[,2]
         
         if(str_detect(project2,'载体')){
