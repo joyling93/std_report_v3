@@ -73,7 +73,7 @@ db_clean <- function(db_type){
 
 # 计算开始日期x到结束日期经历的工作日
 workday_cal <- function(x,y){
-        sum(wday(x+days(0:ceiling((y-x)/ddays(1))))%in%c(2:6))
+        sum(wday(x+days(1:ceiling((y-x)/ddays(1))))%in%c(2:6))
 }
 
 # 计算生产部门延期率，产能
@@ -124,14 +124,21 @@ delay_cal <- function(dt,time_span,period_type){
 
         #小组延期度、延期率
         dt2 <- 
-                dt1 %>% 
-                group_by(CD.子任务类型,统计周期) %>%
-                summarise(延期度 = as.integer(sum(延期度)/n()),
-                             延期率 = as.integer(sum(延期率)/n()),
-                             姓名 = 'total',
-                             产值 = sum(CD.子产能),
-                             完成项目数 = sum(完成项目数)
-                ) 
+                dt %>%
+                filter(是否是子任务=='Y') %>% 
+                # mutate(
+                #         预期周期 = if_else(CD.产能类型=='基因合成载体',0,预期周期),
+                #         实际周期 = if_else(CD.产能类型=='基因合成载体',0,实际周期),
+                #         project_delay = if_else(CD.产能类型=='基因合成载体',NaN,project_delay)) %>% 
+                group_by(CD.子任务类型,统计周期) %>% 
+                summarise(
+                        完成项目数 = n(),
+                        延期度 = round((sum(预期周期)-sum(实际周期))/sum(预期周期)
+                                    ,digits = 2)*100,
+                        延期率 = round(sum(project_delay,na.rm = T)/sum(!is.na(project_delay))
+                                    ,digits = 2)*100,
+                        姓名 = 'total',
+                        产值 = sum(CD.子产能)) 
         
         #个人按任务类型计算产值
         dt3 <- 
