@@ -1,9 +1,10 @@
-# # library(RSQLite)
-# db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
 # period_type <- '月度'
-# time_span <- today()-ddays(30)
-# time_span <- "2021-01-24"
+# time_span <- today()-ddays(60)
 # db_type <- 'product_sec'
+# DBI::dbDisconnect(db)
+# load('debug/test/test_env.Rds')
+# save.image('debug/test/test_env.Rds')
+
 # 数据去重和日期处理
 db_clean <- function(db_type){
         db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
@@ -19,13 +20,16 @@ db_clean <- function(db_type){
                         arrange(desc(import_time)) %>% 
                         filter(!duplicated(任务ID)) %>% 
                         select(任务ID,A.方案设计者,A.方案指派日期,S.合同金额,S.消费金额) %>% 
-                        rename(主任务ID=任务ID)
+                        rename(主任务ID=任务ID) %>% 
+                        mutate(主任务ID=tolower(主任务ID))
                         
                 dt2 <- dt %>% 
                         filter(任务类型=='生产序列模板') %>% 
                         select(-c(A.方案设计者,A.方案指派日期,S.合同金额,S.消费金额)) %>% 
-                        mutate(主任务ID = unlist(map(标题,
-                                                    ~tolower(str_extract(.x,regex('fw-\\d+', ignore_case = T)))))) %>% 
+                        mutate(
+                                主任务ID = unlist(map(标题,
+                                                    ~tolower(str_extract(.x,regex('fw-\\d+|DS-\\d+', ignore_case = T)))))
+                                  ) %>% 
                         left_join(dt_extra) %>% 
                         arrange(desc(import_time)) %>% 
                         filter(!duplicated(任务ID)) %>% 
@@ -87,6 +91,7 @@ delay_cal <- function(dt,time_span,period_type){
                               '年度' = year)
         
         dt <-
+                #test <- 
                 dt %>%
                 drop_na(开始时间,截止时间,Su.实验实际开始日期,Su.实验实际完成日期) %>% 
                 mutate(
@@ -112,6 +117,7 @@ delay_cal <- function(dt,time_span,period_type){
                         实际周期 = if_else(CD.产能类型=='基因合成载体',0,实际周期),
                         project_delay = if_else(CD.产能类型=='基因合成载体',NaN,project_delay)) %>% 
                 group_by(CE.实验执行人姓名,统计周期,CD.子任务类型) %>% 
+                #select(CE.实验执行人姓名,统计周期,CD.子任务类型,预期周期,实际周期,CD.子任务类型)
                 summarise(
                         完成项目数 = n(),
                         延期度 = round((sum(预期周期)-sum(实际周期))/sum(预期周期)

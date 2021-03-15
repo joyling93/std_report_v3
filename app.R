@@ -21,6 +21,7 @@ library(shinyjs)
 library(purrr)
 library(webshot)
 library(openxlsx)
+library(readr)
 
 temp_dir <- tempdir()
 
@@ -105,7 +106,7 @@ ui <- dashboardPage(
                                         br(),
                                         sidebarPanel(
                                                 selectInput('archieve_type','选择归档信息种类',
-                                                            c('TB任务','记录表')),
+                                                            c('TB任务','记录表','TB任务2020')),
                                                 fileInput('db_file',
                                                           label = '上传excel文件',
                                                           multiple = T),
@@ -119,7 +120,7 @@ ui <- dashboardPage(
                                                 hr(),
                                                 h3(textOutput('archieve_status')),
                                                 hr(),
-                                                #textOutput('feedback_info')
+                                                textOutput('feedback_info')
                                         )
                                 )
                         ),

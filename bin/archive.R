@@ -1,6 +1,6 @@
 
 # filename <- dir('./debug/test',pattern = '信息表.xlsx')
-# filepath <- dir('./debug/test',pattern = '全任务归档测试.xlsx',full.names = T)
+# filepath <- dir('./debug/test',pattern = '2020任务归档测试.csv',full.names = T)
 # archive_files(
 #         filepath=filepath,
 #         filename=filename,
@@ -49,31 +49,69 @@ tb_db <- function(filepath,db){
 
 
 tb_db2 <- function(filepath,db){
-        out_info <- '归档成功'
-        dt <- openxlsx::loadWorkbook(filepath)
-        # names(dt)
-        dt_list <- 
-                purrr::map(names(dt),function(x){
-                        y <- readWorkbook(dt,sheet=x,
-                                          skipEmptyCols=T)
-                        y$import_time <- as.double(Sys.time())
-                        colnames(y) <- str_replace_all(colnames(y),'\\"','')# 去除标题中多余“号
-                        colnames(y) <- str_replace_all(colnames(y),'[-()（）]','.')# 转化标题中-为.
-                        y <- y %>% 
-                                select(!where(~all(is.na(.x))))
-                })
-        dt_fin <- dbReadTable(db,'db') %>% 
-                bind_rows(dt_list) %>% 
-                arrange(desc(import_time)) %>% 
-                filter(!duplicated(任务ID))
-        
-        ##预处理一些遗留问题
-        dt_fin <- 
-                dt_fin %>% mutate(CD.产能类型 = map_chr(CD.产能类型,str_replace_all,pattern='拼装和酶切连接，LR载体',
-                                                    replacement='拼装和酶切连接；LR载体'))
-        
-        dbWriteTable(db,'db',dt_fin,overwrite=T)
-        return(out_info)
+        if(str_detect(filepath,fixed('.csv'))){
+                dt <- read_csv(filepath,col_types = cols(
+                        b4消费金额 = col_character()
+                ))
+                subtype <- 
+                function(type){
+                        dt_sub <- dt %>% 
+                                select(任务ID,标题,contains(type)) %>% 
+                                drop_na() %>% 
+                                rename(
+                                        CE.实验执行人姓名 = paste0('g5',type,'姓名'),
+                                        截止时间 = paste0('d5',type,'截止'),
+                                        Su.实验实际开始日期 = paste0('d5',type,'开始'),
+                                        Su.实验实际完成日期 = paste0('g5',type,'完成'),
+                                        CD.子产能 = paste0('d5',type,'产能')
+                                ) %>% 
+                                mutate(
+                                        开始时间 = Su.实验实际开始日期,
+                                        CD.子任务类型 = type,
+                                        任务类型 = '生产序列模板',
+                                        是否是子任务 = 'Y',
+                                        标题 = paste0(任务ID,'-',标题),
+                                ) 
+                }
+                
+                dt_product <- map_dfr(c('分子','病毒','细胞'),subtype) %>% 
+                        mutate(任务ID = paste0(任务ID,CD.子任务类型))#虚拟任务ID
+                
+                dt_sale <- dt %>% 
+                        select(!contains(c('分子','病毒','细胞'))) %>% 
+                        drop_na() %>% 
+                        rename(S.合同金额 = b4合同金额,
+                               S.消费金额 = b4消费金额,
+                               A.方案设计者 = 方案设计者,
+                               D.方案设计延期 = 方案设计延期,
+                               A.方案指派日期 = d5总开始) %>% 
+                        mutate(
+                                任务类型 = '销售序列模板',
+                                是否是子任务 = 'N',
+                        )
+                
+                dt_fin <- bind_rows(dt_product,dt_sale) %>% 
+                        mutate(
+                                import_time = as.double(Sys.time()),
+                                CD.子产能 = as.character(CD.子产能),
+                                S.合同金额 = as.character(S.合同金额),
+                                任务ID = tolower(任务ID),
+                                CD.组成产能 = CD.子产能,
+                                CD.产能类型 = '2020旧项目'
+                               ) %>% 
+                        mutate(across(where(is.POSIXt),as.character)) %>% 
+                        bind_rows(dbReadTable(db,'db')) %>% 
+                        arrange(desc(import_time)) %>% 
+                        filter(!duplicated(任务ID))
+
+                out_info <- '归档成功'
+                dbWriteTable(db,'db',dt_fin,overwrite=T)
+                return(out_info)
+        }
+        else{
+                out_info <- '归档失败，检查文件是否为csv格式。'
+        }
+
 }
 
 record_db <- 
