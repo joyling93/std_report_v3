@@ -106,6 +106,8 @@ ui <- dashboardPage(
                                         br(),
                                         br(),
                                         sidebarPanel(
+                                                actionButton('archive_auto',label='点此开始自动归档'),
+                                                hr(),
                                                 selectInput('archieve_type','选择归档信息种类',
                                                             c('TB任务','记录表','TB任务2020')),
                                                 fileInput('db_file',
@@ -113,10 +115,11 @@ ui <- dashboardPage(
                                                           multiple = T),
                                                 #actionButton('report_download',label = '下载结题报告'),
                                                 #hr(),
-                                                actionButton('archive',label='点此开始归档'),
+                                                actionButton('archive',label='点此开始手动归档'),
                                                 
                                         ),
                                         mainPanel(
+                                                h3(textOutput('update_status')),
                                                 textOutput('file_list'),
                                                 hr(),
                                                 h3(textOutput('archieve_status')),
@@ -297,11 +300,30 @@ server <- function(input, output) {
         
         ###归档系统
         ##文件上传列表1
+        output$update_status <- renderText({
+                db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
+                info <- dbGetQuery(db, "SELECT DISTINCT `import.time` FROM db ORDER BY `import.time` DESC")
+                dbDisconnect(db)
+                paste0('数据库最新更新时间：',as.POSIXct(info[1,1],origin = "1970-01-01"))
+        })
         output$file_list <- renderText({
                 paste0('上传文件列表：',str_c(input$db_file$name,collapse = '、'))
         })
         
         ##文件归档
+        observeEvent(input$archive_auto, {
+                output$archieve_status <- renderText({
+                        progress <- shiny::Progress$new()
+                        on.exit(progress$close)
+                        progress$set('归档准备',value=0.2)
+                        source('bin/auto_archieve.R')
+                        progress$set('归档中。。。',value=0.5)
+                        info <- auto_archieve()
+                        progress$set('归档完成',value=1)
+                        info
+                })
+        })
+        
         observeEvent(input$archive, {
                 output$archieve_status <- renderText({
                         db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
