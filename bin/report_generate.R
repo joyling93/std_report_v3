@@ -84,6 +84,8 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
                                         'ifu/mL'
                                 }}),
                                病毒滴度=`病毒滴度(10的8次方)`*1e8,
+                               载体类型 = if_else(str_detect(病毒类型,'AAV'),
+                                              paste0(载体类型,病毒类型),载体类型),
                                滴度 = paste0(病毒滴度,unit)
                         ) %>% 
                         select(载体编号,载体描述,载体类型,滴度,出库规格,出库数量) %>% 

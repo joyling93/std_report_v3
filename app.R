@@ -22,6 +22,7 @@ library(purrr)
 library(webshot)
 library(openxlsx)
 library(readr)
+library(httr)
 
 temp_dir <- tempdir()
 

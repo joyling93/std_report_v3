@@ -21,7 +21,7 @@ archive_files <- function(type,filepath,db){
 
 tb_db <- function(filepath,db){
         out_info <- '归档成功'
-        dt <- openxlsx::loadWorkbook(filepath)
+        dt <- loadWorkbook(filepath)
         # names(dt)
         dt_list <- 
                 purrr::map(names(dt),function(x){
