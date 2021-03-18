@@ -22,7 +22,7 @@ library(purrr)
 library(webshot)
 library(openxlsx)
 library(readr)
-library(httr)
+
 
 temp_dir <- tempdir()
 
@@ -315,12 +315,15 @@ server <- function(input, output) {
                 output$archieve_status <- renderText({
                         progress <- shiny::Progress$new()
                         on.exit(progress$close)
-                        progress$set('归档准备',value=0.2)
+                        progress$set('归档准备',value=0.25)
                         source('bin/auto_archieve.R')
-                        progress$set('归档中。。。',value=0.5)
-                        info <- auto_archieve()
+                        source('bin/auto_archieve2.R')
+                        progress$set('新流程归档中。。。',value=0.5)
+                        info1 <- auto_archieve()
+                        progress$set('2020旧流程归档中。。。',value=0.75)
+                        info2 <- auto_archieve2()
                         progress$set('归档完成',value=1)
-                        info
+                        info <- paste(info1,info2,sep='；')
                 })
         })
         

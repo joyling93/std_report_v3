@@ -9,6 +9,7 @@
 db_clean <- function(db_type){
         db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
         dt <- dbReadTable(db,'db')
+        DBI::dbDisconnect(db)
         col_clean <- 
                 colnames(dt) %>% 
                 str_replace_all('^X\\.','') %>% 
@@ -57,10 +58,11 @@ db_clean <- function(db_type){
                 dt2 <- dt %>% 
                         dplyr::filter(任务类型=='销售序列模板') %>% 
                         left_join(dt_extra) %>% 
-                        mutate(across(matches('时间|日期'),ymd_hms),
-                               across(contains('姓名'),as.factor),
-                               across(ends_with('产能'),as.numeric),
-                               across(contains('周期'),as.numeric)
+                        mutate(
+                                across(matches('时间|日期'),ymd_hms),
+                                across(contains('姓名'),as.factor),
+                                across(ends_with('产能'),as.numeric),
+                                across(contains('周期'),as.numeric)
                                )
         }else{
                 dt2 <- dt %>% 
@@ -70,7 +72,7 @@ db_clean <- function(db_type){
                                across(contains('姓名'),as.factor),
                         )
         }
-        DBI::dbDisconnect(db)
+        
         return(dt2)
 }
 

@@ -103,6 +103,16 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
         
         pre_read <- bind_rows(t1,t2,t3) %>% 
                 arrange(滴度) 
+        if(any(str_detect(pre_read$载体类型,'慢病毒'))){
+                pre_read <- 
+                pre_read %>% add_row(载体编号='/',
+                                         载体描述='/',
+                                         载体类型='Polybrene',
+                                         滴度='50μl',
+                                         规格='8mg/ml',
+                                         数量='支'
+                                         )
+        }
         # drop_na() %>% 
         # arrange(滴度) 
         pre_read_ft <- pre_read %>% 

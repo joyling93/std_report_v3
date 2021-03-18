@@ -21,7 +21,7 @@ mutate(dt_list,CD.产能类型 = map_chr(CD.产能类型,str_replace_all,pattern
 
 
 dbWriteTable(db,'db',dt_list,overwrite=T)
-dbDisconnect(db)
+
 #往期数据导入
 file_p2 <- '/Users/zhuomingx/Desktop/Rbio/std_report_v3/debug/test/2020任务归档测试.csv'
 
@@ -79,4 +79,4 @@ dt_fin <- bind_rows(dt_product,dt_sale) %>%
 
 out_info <- '归档成功'
 #dbWriteTable(db,'db',dt_fin,overwrite=T)
-
+dbDisconnect(db)
