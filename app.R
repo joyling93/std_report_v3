@@ -109,7 +109,7 @@ ui <- dashboardPage(
                                                 actionButton('archive_auto',label='点此开始自动归档'),
                                                 hr(),
                                                 selectInput('archieve_type','选择归档信息种类',
-                                                            c('TB任务','记录表','TB任务2020')),
+                                                            c('TB任务','实验记录（信息）表','TB任务2020')),
                                                 fileInput('db_file',
                                                           label = '上传excel文件',
                                                           multiple = T),
@@ -137,7 +137,7 @@ ui <- dashboardPage(
                                         
                                         sidebarPanel(
                                                 selectInput('selected_db','选择统计种类',
-                                                            c('生产任务','销售任务','记录表')),
+                                                            c('生产任务','销售任务','实验记录表')),
                                                 dateInput('time_span',label = '选择统计日期',value = today()),
                                                 selectInput('period_type','选择统计种类',
                                                             c('周度','月度','年度'),selected='周度'),
@@ -307,7 +307,11 @@ server <- function(input, output) {
                 paste0('数据库最新更新时间：',as.POSIXct(info[1,1],origin = "1970-01-01"))
         })
         output$file_list <- renderText({
-                paste0('上传文件列表：',str_c(input$db_file$name,collapse = '、'))
+                display.list <- input$db_file$name
+                if(length(display.list)>5){
+                        display.list <- c(input$db_file$name[1:10],'...')
+                }
+                paste0('上传文件列表：',str_c(display.list,collapse = '、'))
         })
         
         ##文件归档
@@ -411,6 +415,24 @@ server <- function(input, output) {
                         )
                         
                         
+                }else if(input$selected_db=='实验记录表'){
+                        dt <- db_clean('exp_info')
+                        output$DT1 <-  DT::renderDT({
+                                #req(credentials()$user_auth)
+                                dt %>% 
+                                        slice_head(n=5)
+                        },
+                        extensions = c('Buttons','Responsive','KeyTable'),
+                        options = DT_options_list)
+                        
+                        output$download_stat <- downloadHandler(
+                                filename=function(){
+                                        y <- paste0('统计数据.xlsx')
+                                },
+                                content=function(file){
+                                        write.xlsx(dt, file)
+                                }
+                        )
                 }else{
                         dt <- db_clean('record_db')
                 }

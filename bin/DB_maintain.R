@@ -2,6 +2,8 @@
 library(RSQLite)
 library(readxl)
 db <- DBI::dbConnect(SQLite(),dbname='/Users/zhuomingx/Desktop/Rbio/std_report_v3/data/testDB.db')
+dbListTables(db)
+
 dt_fin <- dbReadTable(db,'db') 
 
 file_p <- '/Users/zhuomingx/Desktop/Rbio/std_report_v3/debug/test/全任务归档测试.xlsx'

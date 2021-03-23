@@ -1,6 +1,6 @@
 
-# filename <- dir('./debug/test',pattern = '信息表.xlsx')
-# filepath <- dir('./debug/test',pattern = '2020任务归档测试.csv',full.names = T)
+# filename <- dir('/Users/zhuomingx/Desktop/Rbio/std_report_v3/debug/test/信息表归档测试','.xlsx')
+# filepath <- dir('/Users/zhuomingx/Desktop/Rbio/std_report_v3/debug/test/信息表归档测试','.xlsx',full.names = T)
 # archive_files(
 #         filepath=filepath,
 #         filename=filename,
@@ -14,7 +14,7 @@ archive_files <- function(type,filepath,db){
         out_info <- switch (type,
                             'TB任务' = tb_db(filepath,db),
                             'TB任务2020' = tb_db2(filepath,db),
-                            '记录表' = record_db(filepath,db)
+                            '实验记录（信息）表' = record_db(filepath,db)
         )
         return(out_info)
 }
@@ -115,25 +115,15 @@ tb_db2 <- function(filepath,db){
 }
 
 record_db <- 
-function(filename,filepath,db){
-        if(any(stringr::str_detect(filename,'分子实验记录表'))){
-                filelist <- filepath[stringr::str_which(filename,'分子实验记录表')]
-                dt <- bind_rows(purrr::map(filelist,openxlsx::read.xlsx)) %>% 
-                        mutate(import_time=Sys.time())
-                dbWriteTable(db,'分子实验记录表',dt,append = TRUE)
-        }
-        if(any(stringr::str_detect(filename,'病毒实验记录表'))){
-                filelist <- stringr::str_subset(filepath,'病毒实验记录表')
-                dt <- bind_rows(purrr::map(filelist,openxlsx::read.xlsx)) %>% 
-                        mutate(import_time=Sys.time())
-                dbWriteTable(db,'病毒实验记录表',dt,append = TRUE)
-        }
-        if(any(stringr::str_detect(filename,'细胞实验记录表'))){
-                filelist <- stringr::str_subset(filepath,'细胞实验记录表')
-                dt <- bind_rows(purrr::map(filelist,openxlsx::read.xlsx)) %>% 
-                        mutate(import_time=Sys.time())
-                dbWriteTable(db,'细胞实验记录表',dt,append = TRUE)
-        }
+function(filepath,db){
+        file_path <- filepath[str_detect(filepath,'\\.xlsx|\\.xls')]
+        dt <- purrr::map_dfr(file_path,readxl::read_xlsx,col_types = "text")
+        dt_new <- unite(dt,载体,载体信息,载体编号,sep = '',na.rm = T) %>% 
+                mutate(import.time=as.numeric(Sys.time()))
+        db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
+        
+        dbWriteTable(db,'exp_info',dt_new,overwrite=T)
+        dbDisconnect(db)
         out_info <- '归档成功'
 }
 

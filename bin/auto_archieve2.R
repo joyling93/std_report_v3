@@ -80,9 +80,9 @@ auto_archieve2 <- function(){
         
         #以预制cfid对照表转化customfields为字段名称
         for (i in 1:length(colnames(dt_new))) {
-                if(colnames(dt_new)[i]%in%cf_phrase$V1){
-                        colnames(dt_new)[i] <- subset(cf_phrase,V1==colnames(dt_new)[i]) %>% 
-                                pull(V2)
+                if(colnames(dt_new)[i]%in%cf_phrase$customfildID){
+                        colnames(dt_new)[i] <- subset(cf_phrase,customfildID==colnames(dt_new)[i]) %>% 
+                                pull(name)
                 }
         }
         

@@ -64,7 +64,17 @@ db_clean <- function(db_type){
                                 across(ends_with('产能'),as.numeric),
                                 across(contains('周期'),as.numeric)
                                )
-        }else{
+        }else if(db_type=='exp_info'){
+                db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
+                dt <- dbReadTable(db,'exp_info')
+                DBI::dbDisconnect(db)
+                col_clean <- 
+                        colnames(dt) %>% 
+                        str_replace_all('^X\\.','') %>% 
+                        str_replace_all('\\.$','')
+                dt2 <- dt
+        }
+        else{
                 dt2 <- dt %>% 
                         arrange(desc(import.time)) %>% 
                         dplyr::filter(!duplicated(任务ID)) %>% 
