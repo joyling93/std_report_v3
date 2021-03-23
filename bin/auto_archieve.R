@@ -2,7 +2,7 @@
 library(httr)
 library(reticulate)
 
-load('./data/cf_phrase')
+#load('./data/cf_phrase')
 #use_virtualenv('test', required = FALSE)
 sns <- import('jwt')
 auto_archieve <- function(){
@@ -93,11 +93,15 @@ auto_archieve <- function(){
                                         研发执行任务模板='601388f10f3155092eb4fb67')
                 )
         
+        db <- DBI::dbConnect(SQLite(),dbname='data/testDB.db')
+        cf_phrase <- dbReadTable(db,'cf_phrase')
+        dt_db <- dbReadTable(db,'db')
+        
         #以预制cfid对照表转化customfields为字段名称
         for (i in 1:length(colnames(dt_new))) {
-                if(colnames(dt_new)[i]%in%cf_phrase$V1){
-                        colnames(dt_new)[i] <- subset(cf_phrase,V1==colnames(dt_new)[i]) %>% 
-                                pull(V2)
+                if(colnames(dt_new)[i]%in%cf_phrase$customfildID){
+                        colnames(dt_new)[i] <- subset(cf_phrase,customfildID==colnames(dt_new)[i]) %>% 
+                                pull(name)
                 }
         }
         
@@ -109,10 +113,7 @@ auto_archieve <- function(){
                                                 replacement='拼装和酶切连接；LR载体'),
                        import.time = as.numeric(Sys.time())
                        )
-        
-        db <- DBI::dbConnect(SQLite(),dbname='data/testDB.db')
-        dt_db <- dbReadTable(db,'db') 
-        
+
         #合并数据库，以导入时间排序，去除旧数据
         dt_fin <- 
         bind_rows(dt_new,dt_db) %>% 

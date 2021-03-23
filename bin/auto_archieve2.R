@@ -2,7 +2,7 @@
 # library(reticulate)
 # load('./data/cf_phrase')
 # sns <- import('jwt')
-
+# 2020旧项目统计
 auto_archieve2 <- function(){
         encoded <-  sns$encode(list(
                 '_appId'= "60497fd21101c251cd202969",#appid
@@ -17,11 +17,15 @@ auto_archieve2 <- function(){
         
         pageToken <- ''
         
-        payload <- list("tql"= "_projectId=58081fe94863251f4269aaf3 AND _tasklistId=5dedbcd453b99f0020ec76aa isArchived = false",
+        payload <- list("tql"= "_projectId=58081fe94863251f4269aaf3 AND _tasklistId=5dedbcd453b99f0020ec76aa OR _tasklistId=5ce122f34f895a001991ae12 isArchived = false",
                         "pageSize"= 1000,
                         "pageToken"= pageToken
         )
-        
+        # payload <- list("tql"= "_projectId=58081fe94863251f4269aaf3 AND _tasklistId=5dedbcd453b99f0020ec76aa isArchived = false",
+        #                 "pageSize"= 1000,
+        #                 "pageToken"= pageToken
+        # )
+        #5ce122f34f895a001991ae12
         result <- POST(url,
                        add_headers(.headers = headers),
                        body = payload,encode = 'json')
@@ -32,7 +36,7 @@ auto_archieve2 <- function(){
         
         #持续请求数据直到 pageToken 返回为空
         while (pageToken!='') {
-                payload <- list("tql"= "_projectId=58081fe94863251f4269aaf3 AND _tasklistId=5dedbcd453b99f0020ec76aa isArchived = false",
+                payload <- list("tql"= "_projectId=58081fe94863251f4269aaf3 AND _tasklistId=5dedbcd453b99f0020ec76aa OR _tasklistId=5ce122f34f895a001991ae12 isArchived = false",
                                 "pageSize"= 1000,
                                 "pageToken"= pageToken
                 )
@@ -78,6 +82,10 @@ auto_archieve2 <- function(){
                            父任务.ObjectId=parentTaskId,
                            任务.ObjectId=taskId) 
         
+        db <- DBI::dbConnect(SQLite(),dbname='data/testDB.db')
+        cf_phrase <- dbReadTable(db,'cf_phrase')
+        dbDisconnect(db)
+        
         #以预制cfid对照表转化customfields为字段名称
         for (i in 1:length(colnames(dt_new))) {
                 if(colnames(dt_new)[i]%in%cf_phrase$customfildID){
@@ -116,7 +124,7 @@ auto_archieve2 <- function(){
         
         dt_sale <- dt_new %>% 
                 select(!contains(c('分子','病毒','细胞'))) %>% 
-                drop_na() %>% 
+                #drop_na() %>% 
                 rename(S.合同金额 = b4合同金额,
                        S.消费金额 = b4消费金额,
                        A.方案设计者 = 方案设计者,
@@ -134,8 +142,10 @@ auto_archieve2 <- function(){
                         S.合同金额 = as.character(S.合同金额),
                         任务ID = tolower(任务ID),
                         CD.组成产能 = CD.子产能,
-                        CD.产能类型 = '2020旧项目'
-                ) 
+                        CD.产能类型 = if_else(is.na(X1.基因合成载体产能),'2020旧项目','基因合成载体')##标记旧项目中基因合成项目
+                        ) %>% 
+                select(-X1.基因合成载体产能)
+                 
         
         db <- DBI::dbConnect(SQLite(),dbname='data/testDB.db')
         dt_db <- dbReadTable(db,'db') 

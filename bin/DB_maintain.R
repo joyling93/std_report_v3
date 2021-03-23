@@ -82,3 +82,15 @@ dt_fin <- bind_rows(dt_product,dt_sale) %>%
 out_info <- '归档成功'
 #dbWriteTable(db,'db',dt_fin,overwrite=T)
 dbDisconnect(db)
+
+##cf_phrase
+dt <- dbReadTable(db,'cf_phrase')
+##update db
+dbExecute(db,"UPDATE cf_phrase SET customfildID = '6041950b02a7659ab67d8ab1' WHERE name = 'S.消费金额'")
+##插入值
+dbExecute(db,"INSERT INTO cf_phrase (customfildID,name) VALUES ('601cc7102745a7c6e1648b20','X1.基因合成载体产能')")
+
+
+
+
+
