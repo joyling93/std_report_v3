@@ -18,8 +18,6 @@ db_clean <- function(db_type){
         if(db_type=='product_sec'){
                 dt_extra <- dt %>% 
                         dplyr::filter(任务类型=='销售序列模板') %>% 
-                        # arrange(desc(import.time)) %>% 
-                        # dplyr::filter(!duplicated(任务ID)) %>% 
                         select(任务ID,A.方案设计者,A.方案指派日期,S.合同金额,S.消费金额) %>% 
                         rename(主任务ID=任务ID) %>% 
                         mutate(主任务ID=tolower(主任务ID))
@@ -102,7 +100,7 @@ delay_cal <- function(dt,time_span,period_type){
                               '月度' = month,
                               '年度' = year)
         
-        dt <-
+        dt_capacity <-
                 #test <- 
                 dt %>%
                 drop_na(开始时间,截止时间,Su.实验实际开始日期,Su.实验实际完成日期) %>% 
@@ -114,7 +112,7 @@ delay_cal <- function(dt,time_span,period_type){
                         CD.组成产能 = as.character(CD.组成产能),
                         CD.产能类型 = strsplit(CD.产能类型,split="|", fixed=TRUE),
                         CD.组成产能 = strsplit(CD.组成产能,split="|", fixed=TRUE),
-                        S.消费金额 = strsplit(S.消费金额,split='[[:punct:]]'),
+                        #S.消费金额 = strsplit(S.消费金额,split='[[:punct:]]'),
                         实际周期 = map2_dbl(Su.实验实际开始日期,Su.实验实际完成日期,workday_cal),
                         delay_ratio = (预期周期-实际周期)/预期周期,
                         project_delay = if_else(delay_ratio>=0,0,1),
@@ -124,11 +122,11 @@ delay_cal <- function(dt,time_span,period_type){
         
         ##个人延期度、延期率
         dt1 <- 
-                dt %>%
+                dt_capacity %>%
                 dplyr::filter(是否是子任务=='Y') %>% 
                 mutate(
-                        预期周期 = if_else(CD.产能类型=='基因合成载体',0,预期周期),
-                        实际周期 = if_else(CD.产能类型=='基因合成载体',0,实际周期),
+                        预期周期 = if_else(CD.产能类型=='基因合成载体'&project_delay==1,0,预期周期),
+                        实际周期 = if_else(CD.产能类型=='基因合成载体'&project_delay==1,0,实际周期),
                         project_delay = if_else(CD.产能类型=='基因合成载体',NaN,project_delay)) %>% 
                 group_by(CE.实验执行人姓名,统计周期,CD.子任务类型) %>% 
                 #select(CE.实验执行人姓名,统计周期,CD.子任务类型,预期周期,实际周期,CD.子任务类型)
@@ -144,7 +142,7 @@ delay_cal <- function(dt,time_span,period_type){
 
         #小组延期度、延期率
         dt2 <- 
-                dt %>%
+                dt_capacity %>%
                 dplyr::filter(是否是子任务=='Y') %>% 
                 group_by(CD.子任务类型,统计周期) %>% 
                 summarise(
@@ -158,7 +156,7 @@ delay_cal <- function(dt,time_span,period_type){
         
         #个人按任务类型计算产值
         dt3 <- 
-                dt %>% 
+                dt_capacity %>% 
                 dplyr::filter(是否是子任务=='Y') %>%
                 tidyr::unnest(c(CD.产能类型,CD.组成产能),keep_empty=T) %>% 
                 mutate(CD.组成产能=as.numeric(CD.组成产能)) %>% 
@@ -182,20 +180,48 @@ delay_cal <- function(dt,time_span,period_type){
                         任务派发延期率 = round(sum(distribution_delay)/n(),digits = 1)
                 )
         
-        dt_summary3 <- 
+        dt_design_capacity <- 
                 dt %>% 
                 dplyr::filter(是否是子任务=='N',!is.na(A.方案设计者)) %>%
                 drop_na(开始时间,A.方案指派日期,A.方案设计者) %>% 
-                mutate(design_delay = if_else((开始时间-A.方案指派日期)/ddays(1)>2,1,0)) %>% 
+                mutate(
+                        统计周期 = time_filter(A.方案指派日期),
+                        S.消费金额 = 
+                                strsplit(S.消费金额,split='[[:punct:]]')
+                                ,
+                        S.合同金额 = as.numeric(S.合同金额)
+                        ) %>%
+                dplyr::filter(
+                        year(A.方案指派日期)==year(time_span),
+                        统计周期==time_filter(time_span)
+                )%>%
+                mutate(design_delay = if_else((开始时间-A.方案指派日期)/ddays(1)>2,0,1))
+        
+        #计算除消费金额外的总计
+        dt_summary <- 
+        dt_design_capacity %>% 
                 group_by(A.方案设计者) %>% 
                 # select(开始时间,A.方案指派日期,A.方案设计者,S.合同金额,S.消费金额)
-                summarise(方案设计延期数 = sum(design_delay),
-                                 方案设计延期率 = round(方案设计延期数/n(),digits = 1),
-                                 延期任务ID = str_c(任务ID[design_delay==1],collapse = ','),
-                                 方案设计产值 = sum(sum(as.numeric(S.合同金额),na.rm=T),
-                                         sum(as.numeric(unlist(S.消费金额),na.rm=T)),na.rm=T)
+                summarise(
+                        方案设计延期数 = sum(!design_delay),
+                        方案设计延期率 = round(方案设计延期数/n(),digits = 1),
+                        延期任务ID = str_c(任务ID[design_delay==1],collapse = ','),
+                        S.合同金额 = sum(S.合同金额*design_delay,na.rm=T)
                 )
         
+        #合并消费金额
+        dt_summary3 <- 
+                dt_design_capacity %>% 
+                group_by(A.方案设计者) %>% 
+                tidyr::unnest(S.消费金额) %>% 
+                # select(开始时间,A.方案指派日期,A.方案设计者,S.合同金额,S.消费金额)
+                summarise(
+                        S.消费金额 = sum(as.numeric(S.消费金额)*design_delay,na.rm=T)
+                ) %>% 
+                right_join(dt_summary) %>% 
+                mutate(方案设计产值=S.消费金额+S.合同金额) %>% 
+                select(-c(S.消费金额,S.合同金额))
+                
         return(list(dt_summary1,dt_summary2,dt_summary3,dt))
 }
 

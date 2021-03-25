@@ -1,75 +1,9 @@
-# library(httr)
-# library(reticulate)
-# load('./data/cf_phrase')
-# sns <- import('jwt')
-# 2020旧项目统计
+#自动归档2020tb流程任务
 auto_archieve2 <- function(){
-        encoded <-  sns$encode(list(
-                '_appId'= "60497fd21101c251cd202969",#appid
-                'iat'= as.numeric(Sys.time()),
-                'exp'= as.numeric(Sys.time()) + 3600), "Z5vpPJj0b7QNrihJsGVCTeDXzsPGK0j0")#app密码
+        tql.query <- "_projectId=58081fe94863251f4269aaf3 AND _tasklistId=5dedbcd453b99f0020ec76aa OR _tasklistId=5ce122f34f895a001991ae12 isArchived = false"
+        uniqueId.prefix <- "DS-"
         
-        headers <- c('Content-Type' = 'application/json',
-                     'Authorization' = paste0('Bearer ',encoded),
-                     'X-Tenant-Id' = '600e5711f2865f35d6ad662c',#企业编号
-                     'X-Tenant-Type' = 'organization')
-        url <- 'https://open.teambition.com/api/task/tqlsearch'
-        
-        pageToken <- ''
-        
-        payload <- list("tql"= "_projectId=58081fe94863251f4269aaf3 AND _tasklistId=5dedbcd453b99f0020ec76aa OR _tasklistId=5ce122f34f895a001991ae12 isArchived = false",
-                        "pageSize"= 1000,
-                        "pageToken"= pageToken
-        )
-        # payload <- list("tql"= "_projectId=58081fe94863251f4269aaf3 AND _tasklistId=5dedbcd453b99f0020ec76aa isArchived = false",
-        #                 "pageSize"= 1000,
-        #                 "pageToken"= pageToken
-        # )
-        #5ce122f34f895a001991ae12
-        result <- POST(url,
-                       add_headers(.headers = headers),
-                       body = payload,encode = 'json')
-        
-        dt_list <- content(result)[[5]]
-        
-        pageToken <- content(result)[[4]]
-        
-        #持续请求数据直到 pageToken 返回为空
-        while (pageToken!='') {
-                payload <- list("tql"= "_projectId=58081fe94863251f4269aaf3 AND _tasklistId=5dedbcd453b99f0020ec76aa OR _tasklistId=5ce122f34f895a001991ae12 isArchived = false",
-                                "pageSize"= 1000,
-                                "pageToken"= pageToken
-                )
-                
-                result <- POST(url,
-                               add_headers(.headers = headers),
-                               body = payload,encode = 'json')
-                
-                dt_list <- append(dt_list,content(result)[[5]])
-                
-                pageToken <- content(result)[[4]]
-        }
-        
-        dt <- 
-                map(dt_list,possibly(function(dt_list){
-                        test <- transpose(dt_list$customfields)#转置customfields为cfid，value列
-                        dt <- reduce(test,cbind) %>% #将所有customfields合并dataframe
-                                as_tibble() %>% 
-                                unnest(cols = c(out, elt, V3)) %>% 
-                                mutate(V4=map_chr(V3,~.x[['title']])) %>% #取出customfields的值
-                                select(out,V4) %>% 
-                                distinct(out,.keep_all =T) %>% #对于文件类customfields，可能有多值情况
-                                pivot_wider(names_from = out,values_from=V4) %>% #将所有customfields变为一行
-                                bind_cols(dt_list[c('created','content','dueDate',
-                                                    'startDate','templateId','uniqueId',
-                                                    'parentTaskId','taskId')]) %>% 
-                                mutate(
-                                        是否是子任务=if_else(c("parentTaskId")%in%names(dt_list),#判断parentTaskId存在确定任务是否为子任务
-                                                       'Y','N'),
-                                        uniqueId=paste0('DS-',uniqueId)#补齐任务ID前缀
-                                )
-                },NULL
-                ))
+        dt <- tql_query(tql.query,uniqueId.prefix)
         
         dt_new <- 
                 bind_rows(discard(dt,is.null)) %>% 
@@ -119,9 +53,25 @@ auto_archieve2 <- function(){
                                 ) 
                 }
         
+        #构造虚拟二级生产子任务
         dt_product <- map_dfr(c('分子','病毒','细胞'),subtype) %>% 
-                mutate(任务ID = paste0(任务ID,CD.子任务类型))#虚拟任务ID
+                mutate(任务ID = paste0(任务ID,CD.子任务类型),#虚拟任务ID
+                         link=str_match(标题,'FW-\\d+'))#提取旧合同号作关联任务链接
         
+        dt_product <- 
+        dt_new %>% 
+                select(X1.基因合成载体产能,标题) %>% 
+                mutate(
+                        link=str_match(标题,'FW-\\d+'),
+                        CD.产能类型 = '基因合成载体'##标记旧项目中基因合成项目
+                       ) %>% 
+                drop_na() %>%
+                select(CD.产能类型,link) %>% 
+                right_join(dt_product) %>% 
+                mutate(CD.产能类型=if_else(CD.子任务类型=='分子',CD.产能类型,'2020旧项目')) %>% 
+                replace_na(list(CD.产能类型='2020旧项目'))#将所有非分子的基因合成载体任务转化为’旧项目‘
+        
+        #构造虚拟一级任务
         dt_sale <- dt_new %>% 
                 select(!contains(c('分子','病毒','细胞'))) %>% 
                 #drop_na() %>% 
@@ -135,16 +85,13 @@ auto_archieve2 <- function(){
                         是否是子任务 = 'N',
                 )
         
-        dt_new <- bind_rows(dt_product,dt_sale) %>% 
+        dt_update <- bind_rows(dt_product,dt_sale) %>% 
                 mutate(
                         import.time = as.numeric(Sys.time()),
-                        CD.子产能 = as.character(CD.子产能),
-                        S.合同金额 = as.character(S.合同金额),
                         任务ID = tolower(任务ID),
                         CD.组成产能 = CD.子产能,
-                        CD.产能类型 = if_else(is.na(X1.基因合成载体产能),'2020旧项目','基因合成载体')##标记旧项目中基因合成项目
                         ) %>% 
-                select(-X1.基因合成载体产能)
+                select(-X1.基因合成载体产能,-link)
                  
         
         db <- DBI::dbConnect(SQLite(),dbname='data/testDB.db')
@@ -152,7 +99,7 @@ auto_archieve2 <- function(){
         
         #合并数据库，以导入时间排序，去除旧数据
         dt_fin <- 
-                bind_rows(dt_new,dt_db) %>% 
+                bind_rows(dt_update,dt_db) %>% 
                 arrange(desc(import.time)) %>% 
                 dplyr::filter(!duplicated(任务ID)) 
         
