@@ -80,7 +80,7 @@ dt_fin <- bind_rows(dt_product,dt_sale) %>%
         dplyr::filter(!duplicated(任务ID))
 
 out_info <- '归档成功'
-#dbWriteTable(db,'db',dt_fin,overwrite=T)
+dbWriteTable(db,'db',dt_fin,overwrite=T)
 dbDisconnect(db)
 
 ##cf_phrase

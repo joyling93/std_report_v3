@@ -1,4 +1,4 @@
-#自动归档2020tb流程任务
+#自动归档2020tb流程任务，202流程任务生产和销售序列是合并的，故须构造出虚拟的生产主、子任务和销售主任务以便整合入新流程中
 auto_archieve2 <- function(){
         tql.query <- "_projectId=58081fe94863251f4269aaf3 AND _tasklistId=5dedbcd453b99f0020ec76aa OR _tasklistId=5ce122f34f895a001991ae12 isArchived = false"
         uniqueId.prefix <- "DS-"
@@ -58,7 +58,7 @@ auto_archieve2 <- function(){
                 mutate(任务ID = paste0(任务ID,CD.子任务类型),#虚拟任务ID
                          link=str_match(标题,'FW-\\d+'))#提取旧合同号作关联任务链接
         
-        dt_product <- 
+        dt_product_sub <- 
         dt_new %>% 
                 select(X1.基因合成载体产能,标题) %>% 
                 mutate(
@@ -70,6 +70,23 @@ auto_archieve2 <- function(){
                 right_join(dt_product) %>% 
                 mutate(CD.产能类型=if_else(CD.子任务类型=='分子',CD.产能类型,'2020旧项目')) %>% 
                 replace_na(list(CD.产能类型='2020旧项目'))#将所有非分子的基因合成载体任务转化为’旧项目‘
+        
+        #构造虚拟生产主任务
+        dt_product_main <- 
+        dt_new %>% 
+                select(任务ID,开始时间,截止时间) %>% 
+                # #drop_na() %>% 
+                # rename(S.合同金额 = b4合同金额,
+                #        S.消费金额 = b4消费金额,
+                #        A.方案设计者 = 方案设计者,
+                #        D.方案设计延期 = 方案设计延期,
+                #        A.方案指派日期 = d5总开始) %>% 
+                mutate(
+                        任务类型 = '生产序列模板',
+                        是否是子任务 = 'N',
+                        任务ID = paste0(任务ID,'主任务')
+                )
+        
         
         #构造虚拟一级任务
         dt_sale <- dt_new %>% 
@@ -85,7 +102,7 @@ auto_archieve2 <- function(){
                         是否是子任务 = 'N',
                 )
         
-        dt_update <- bind_rows(dt_product,dt_sale) %>% 
+        dt_update <- bind_rows(dt_product_main,dt_product_sub,dt_sale) %>% 
                 mutate(
                         import.time = as.numeric(Sys.time()),
                         任务ID = tolower(任务ID),

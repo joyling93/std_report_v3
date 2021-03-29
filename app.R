@@ -373,20 +373,6 @@ server <- function(input, output) {
                         extensions = c('Buttons','Responsive','KeyTable'),
                         options = DT_options_list)
                         
-                        # output$DT4 <-  DT::renderDT({
-                        #         #req(credentials()$user_auth)
-                        #         output_list[[4]]
-                        # },
-                        # extensions = c('Buttons','Responsive','KeyTable'),
-                        # options = DT_options_list)
-                        
-                        # output$DT5 <-  DT::renderDT({
-                        #         #req(credentials()$user_auth)
-                        #         output_list[[5]]
-                        # },
-                        # extensions = c('Buttons','Responsive','KeyTable'),
-                        # options = DT_options_list)
-                        
                         output$download_stat <- downloadHandler(
                                 filename=function(){
                                         y <- paste0('统计数据.xlsx')
