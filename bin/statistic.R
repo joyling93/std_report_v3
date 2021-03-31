@@ -40,10 +40,12 @@ db_clean <- function(db_type){
         }else if(db_type=='seal_sec'){
                 dt_extra <- dt %>% 
                         dplyr::filter(任务类型=='生产序列模板',是否是子任务=='Y') %>% 
-                        mutate(主任务ID = unlist(map(标题,
-                                                    ~tolower(str_extract(.x,regex('fw-\\d+', ignore_case = T))))),
-                                  CD.子任务类型 = if_else(CD.子任务类型=='','字段未填',CD.子任务类型),
-                                  CE.实验执行人姓名 = if_else(CE.实验执行人姓名=='','字段未填',CE.实验执行人姓名)) %>% 
+                        mutate(
+                                主任务ID = unlist(map(标题,
+                                                     ~tolower(str_extract(.x,regex('fw-\\d+|DS-\\d+', ignore_case = T))))),
+                                CD.子任务类型 = if_else(CD.子任务类型=='','字段未填',CD.子任务类型),
+                                CE.实验执行人姓名 = if_else(CE.实验执行人姓名=='','字段未填',CE.实验执行人姓名)
+                                ) %>% 
                         select(主任务ID,CE.实验执行人姓名,CD.子任务类型,CD.子产能) %>% 
                         group_by(主任务ID) %>% 
                         mutate(CE.实验执行人姓名 = str_c(CE.实验执行人姓名,collapse = ';')) %>% 
@@ -203,7 +205,7 @@ delay_cal <- function(dt,time_span,period_type){
                         统计周期==time_filter(time_span)
                 )%>%
                 #distinct(主任务ID,.keep_all=T) %>% 
-                mutate(design_delay = if_else((开始时间-A.方案指派日期)/ddays(1)>2,1,0))
+                mutate(design_delay = if_else(map2_dbl(A.方案指派日期,开始时间,workday_cal)>2,1,0))
         #%>% dplyr::filter(dt_design_capacity,A.方案设计者=='张权')
         
         #计算除消费金额外的总计

@@ -1,5 +1,6 @@
 #自动归档2020tb流程任务，202流程任务生产和销售序列是合并的，故须构造出虚拟的生产主、子任务和销售主任务以便整合入新流程中
 auto_archieve2 <- function(){
+        #查询2020部门运营中，2020销售技术新流程和分子构建（确定基因合成项目）任务列表中的所欲任务
         tql.query <- "_projectId=58081fe94863251f4269aaf3 AND _tasklistId=5dedbcd453b99f0020ec76aa OR _tasklistId=5ce122f34f895a001991ae12 isArchived = false"
         uniqueId.prefix <- "DS-"
         
@@ -28,15 +29,21 @@ auto_archieve2 <- function(){
                 }
         }
         
+        #保存任务分组不是2020销售技术新流的任务
+        dt_tag <- dt_new %>%
+                dplyr::filter(任务类型!='5dedcf9a5704e70001cef3bc')
+        
+        #仅保存任务类型为2020销售技术服务流程的任务
         dt_new <- 
                 dt_new %>% 
+                dplyr::filter(任务类型=='5dedcf9a5704e70001cef3bc') %>% 
                 select(!matches('^\\d')) #去除没有转化名称的customfields列
         
         subtype <- 
                 function(type){
                         dt_sub <- dt_new %>% 
                                 select(任务ID,标题,contains(type)) %>% 
-                                drop_na() %>% 
+                                drop_na() %>% #没有分子、病毒、细胞字段的任务
                                 rename(
                                         CE.实验执行人姓名 = paste0('g5',type,'姓名'),
                                         截止时间 = paste0('d5',type,'截止'),
@@ -59,7 +66,7 @@ auto_archieve2 <- function(){
                          link=str_match(标题,'FW-\\d+'))#提取旧合同号作关联任务链接
         
         dt_product_sub <- 
-        dt_new %>% 
+        dt_tag %>% 
                 select(X1.基因合成载体产能,标题) %>% 
                 mutate(
                         link=str_match(标题,'FW-\\d+'),
