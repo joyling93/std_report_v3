@@ -27,7 +27,11 @@ db_clean <- function(db_type){
                         select(-c(A.方案设计者,A.方案指派日期,S.合同金额,S.消费金额)) %>% 
                         mutate(
                                 主任务ID = unlist(map(标题,
-                                                    ~tolower(str_extract(.x,regex('fw-\\d+|DS-\\d+', ignore_case = T)))))
+                                                    ~tolower(str_extract(.x,regex('fw-?\\d+|DS-?\\d+', ignore_case = T))))),
+                                #为没有’-‘的任务ID添加’-‘，避免匹配丢失问题
+                                主任务ID = if_else(str_detect(主任务ID,'-'),
+                                                主任务ID
+                                                ,paste0(str_sub(主任务ID,1,2),'-',str_extract(主任务ID,'\\d+')))
                                   ) %>% 
                         left_join(dt_extra) %>% 
                         # arrange(desc(import.time)) %>% 
