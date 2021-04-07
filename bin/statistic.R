@@ -93,6 +93,8 @@ db_clean <- function(db_type){
 
 # 计算开始日期x到结束日期经历的工作日
 workday_cal <- function(x,y){
+        x <- as.Date(x)
+        y <- as.Date(y)
         sum(wday(x+days(1:ceiling((y-x)/ddays(1))))%in%c(2:6))
 }
 
@@ -136,15 +138,14 @@ delay_cal <- function(dt,time_span,period_type){
                               统计周期==time_filter(time_span)) %>% 
                 mutate(
                         预期周期 = map2_dbl(开始时间,截止时间,workday_cal),
-                        CD.组成产能 = as.character(CD.组成产能),
-                        CD.产能类型 = strsplit(CD.产能类型,split="[|,，]"),
-                        CD.组成产能 = strsplit(CD.组成产能,split="[|,，]"),
-                        #S.消费金额 = strsplit(S.消费金额,split='[[:punct:]]'),
                         实际周期 = map2_dbl(Su.实验实际开始日期,Su.实验实际完成日期,workday_cal),
                         delay_ratio = (预期周期-实际周期)/预期周期,
                         project_delay = if_else(delay_ratio<0&CD.产能类型!='基因合成载体',1,0),
-                        filter.tag = if_else(delay_ratio<0&CD.产能类型=='基因合成载体',1,0),#标记在计算延期时需要去除的项
-                        distribution_delay = if_else((开始时间-Su.实验实际开始日期)/ddays(1)>1,1,0)
+                        filter.tag = if_else(delay_ratio<0&str_detect(CD.产能类型,'基因合成载体'),1,0),#标记在计算延期时需要去除的项
+                        distribution_delay = if_else((开始时间-Su.实验实际开始日期)/ddays(1)>1,1,0),
+                        CD.组成产能 = as.character(CD.组成产能),
+                        CD.产能类型 = strsplit(CD.产能类型,split="[|,，]"),
+                        CD.组成产能 = strsplit(CD.组成产能,split="[|,，]"),
                 ) 
                 
         
