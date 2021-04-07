@@ -54,7 +54,9 @@ function(tql.query,uniqueId.prefix){
                                 unnest(cols = c(out, elt, V3)) %>% 
                                 mutate(V4=map_chr(V3,~.x[['title']])) %>% #取出customfields的值
                                 select(out,V4) %>% 
-                                distinct(out,.keep_all =T) %>% #对于文件类customfields，可能有多值情况
+                                chop(V4)%>%
+                                mutate(V4=map_chr(V4,str_c,collapse='|'))%>%
+                                #distinct(out,.keep_all =T) %>% #对于文件类customfields，可能有多值情况
                                 pivot_wider(names_from = out,values_from=V4) %>% #将所有customfields变为一行
                                 bind_cols(dt_list[c('created','content','dueDate',
                                                     'startDate','templateId','uniqueId',

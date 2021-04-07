@@ -1,5 +1,5 @@
 # period_type <- '月度'
-# time_span <- today()-ddays(60)
+# time_span <- today()-ddays(10)
 # db_type <- 'product_sec'
 # DBI::dbDisconnect(db)
 # load('debug/test/test_env.Rds')
@@ -36,9 +36,9 @@ db_clean <- function(db_type){
                         left_join(dt_extra) %>% 
                         # arrange(desc(import.time)) %>% 
                         # dplyr::filter(!duplicated(任务ID)) %>% 
-                        mutate(across(matches('时间|日期'),~as_date(ymd_hms(.x))),
+                        mutate(across(matches('时间|日期'),~ymd_hms(.x)),
                                across(contains('姓名'),as.factor),
-                               across(ends_with('产能'),as.numeric),
+                               #across(ends_with('产能'),as.numeric),
                                across(contains('周期'),as.numeric)
                         )
         }else if(db_type=='seal_sec'){
@@ -96,6 +96,25 @@ workday_cal <- function(x,y){
         sum(wday(x+days(1:ceiling((y-x)/ddays(1))))%in%c(2:6))
 }
 
+design_delay_cal <- function(x,y){
+        #计算日期间小时数
+        int.hour <- ceiling((y-x)/dhours(1))
+        if(int.hour<=48){
+                return(0)
+        }else{
+                #判定非工作日间隔,包括第一天
+                weekend.hour <- sum(wday(x+days(0:ceiling((y-x)/ddays(1))))%in%c(1,7))*24
+                weekday.hour <- int.hour-weekend.hour
+                if(weekday.hour<=48){
+                        return(0)
+                }else{
+                        return(1)
+                }
+        }
+        
+}
+
+
 # 计算生产部门延期率，产能
 delay_cal <- function(dt,time_span,period_type){
         time_filter <- switch(period_type,
@@ -111,14 +130,15 @@ delay_cal <- function(dt,time_span,period_type){
                 dt %>%
                 dplyr::filter(是否是子任务=='Y') %>% 
                 drop_na(开始时间,截止时间,Su.实验实际开始日期,Su.实验实际完成日期) %>% 
-                mutate(统计周期 = time_filter(Su.实验实际完成日期)) %>% 
+                mutate(统计周期 = time_filter(Su.实验实际完成日期),
+                           CD.子产能 = as.numeric(CD.子产能)) %>% 
                 dplyr::filter(year(Su.实验实际完成日期)==year(time_span),
                               统计周期==time_filter(time_span)) %>% 
                 mutate(
                         预期周期 = map2_dbl(开始时间,截止时间,workday_cal),
                         CD.组成产能 = as.character(CD.组成产能),
-                        CD.产能类型 = strsplit(CD.产能类型,split="|", fixed=TRUE),
-                        CD.组成产能 = strsplit(CD.组成产能,split="|", fixed=TRUE),
+                        CD.产能类型 = strsplit(CD.产能类型,split="[|,，]"),
+                        CD.组成产能 = strsplit(CD.组成产能,split="[|,，]"),
                         #S.消费金额 = strsplit(S.消费金额,split='[[:punct:]]'),
                         实际周期 = map2_dbl(Su.实验实际开始日期,Su.实验实际完成日期,workday_cal),
                         delay_ratio = (预期周期-实际周期)/预期周期,
@@ -172,11 +192,13 @@ delay_cal <- function(dt,time_span,period_type){
                 dt_capacity %>% 
                 #dplyr::filter(是否是子任务=='Y') %>%
                 tidyr::unnest(c(CD.产能类型,CD.组成产能),keep_empty=T) %>% 
+                drop_na(CD.组成产能) %>% 
                 mutate(CD.组成产能=as.numeric(CD.组成产能)) %>% 
                 group_by(CE.实验执行人姓名,CD.产能类型,CD.子任务类型,统计周期) %>% 
                 summarise(产值=sum(CD.组成产能)) %>% 
                 arrange(CD.子任务类型,CE.实验执行人姓名) %>% 
                 rename(姓名=CE.实验执行人姓名)
+                
         
         dt_summary1 <- 
         left_join(indent_production,indent_delay) %>% 
@@ -209,7 +231,7 @@ delay_cal <- function(dt,time_span,period_type){
                         统计周期==time_filter(time_span)
                 )%>%
                 #distinct(主任务ID,.keep_all=T) %>% 
-                mutate(design_delay = if_else(map2_dbl(A.方案指派日期,开始时间,workday_cal)>2,1,0))
+                mutate(design_delay = map2_dbl(A.方案指派日期,开始时间,design_delay_cal))
         #%>% dplyr::filter(dt_design_capacity,A.方案设计者=='张权')
         
         #计算除消费金额外的总计

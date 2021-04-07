@@ -1,4 +1,5 @@
 #自动归档2020tb流程任务，202流程任务生产和销售序列是合并的，故须构造出虚拟的生产主、子任务和销售主任务以便整合入新流程中
+#任务ID=='fw-1287'
 auto_archieve2 <- function(){
         #查询2020部门运营中，2020销售技术新流程和分子构建（确定基因合成项目）任务列表中的所欲任务
         tql.query <- "_projectId=58081fe94863251f4269aaf3 AND _tasklistId=5dedbcd453b99f0020ec76aa OR _tasklistId=5ce122f34f895a001991ae12 isArchived = false"
