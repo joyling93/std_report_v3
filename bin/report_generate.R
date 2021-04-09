@@ -1,5 +1,5 @@
-# file_name <- dir('/Users/zhuomingx/Downloads/fw-765-慢病毒培养基减量测试-lw483/','.xlsx')
-# file_path <- dir('/Users/zhuomingx/Downloads/fw-765-慢病毒培养基减量测试-lw483/','.xlsx',full.names = T)
+# file_name <- dir('/Users/zhuomingx/Downloads/测试/','.xlsx')
+# file_path <- dir('/Users/zhuomingx/Downloads/测试/','.xlsx',full.names = T)
 # project1 <- '过表达'
 # project2 <- '病毒包装'
 
@@ -16,7 +16,8 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
         
         dt2 <- dt$data %>% 
                 keep(function(x){length(x)>0}) %>% 
-                reduce(left_join)
+                reduce(left_join) %>% 
+                mutate(载体编号=fct_inorder(载体编号))
         
         
         #从主标题中提取id
@@ -43,7 +44,7 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
                         dt2 %>% 
                         select(基因信息,序列信息) %>% 
                         tidyr::drop_na() %>% 
-                        filter(!基因信息=='/')
+                        dplyr::filter(!基因信息=='/')
                 
                 primer_seq_ft <- dt2 %>% 
                         select(载体编号,测序引物)%>%
@@ -101,11 +102,15 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
         }
         
         
-        pre_read <- bind_rows(t1,t2,t3) %>% 
-                arrange(滴度) 
+        pre_read <- bind_rows(t3,t1,t2) %>% 
+                mutate(载体类型=fct_inorder(载体类型)) %>% 
+                group_by(载体类型) %>% 
+                arrange(载体编号,.by_group = T)
         if(any(str_detect(pre_read$载体类型,'慢病毒'))){
                 pre_read <- 
-                pre_read %>% add_row(载体编号='/',
+                pre_read %>% 
+                        ungroup %>% 
+                        add_row(载体编号='/',
                                          载体描述='/',
                                          载体类型='Polybrene',
                                          滴度='50μl',
