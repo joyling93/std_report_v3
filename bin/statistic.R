@@ -46,7 +46,11 @@ db_clean <- function(db_type){
                         dplyr::filter(任务类型=='生产序列模板',是否是子任务=='Y') %>% 
                         mutate(
                                 主任务ID = unlist(map(标题,
-                                                     ~tolower(str_extract(.x,regex('fw-\\d+|DS-\\d+', ignore_case = T))))),
+                                                     ~tolower(str_extract(.x,regex('fw-?\\d+|DS-?\\d+', ignore_case = T))))),
+                                #为没有’-‘的任务ID添加’-‘，避免匹配丢失问题
+                                主任务ID = if_else(str_detect(主任务ID,'-'),
+                                                主任务ID
+                                                ,paste0(str_sub(主任务ID,1,2),'-',str_extract(主任务ID,'\\d+'))),
                                 CD.子任务类型 = if_else(CD.子任务类型=='','字段未填',CD.子任务类型),
                                 CE.实验执行人姓名 = if_else(CE.实验执行人姓名=='','字段未填',CE.实验执行人姓名)
                                 ) %>% 
@@ -121,7 +125,7 @@ design_delay_cal <- function(x,y){
 delay_cal <- function(dt,time_span,period_type){
         time_filter <- switch(period_type,
                               '周度' = function(x){
-                                      ymd(cut(x+ddays(2),'week',start.on.monday=F))-ddays(2)
+                                      ymd(cut(x+ddays(1),'week',start.on.monday=F))-ddays(1)
                                       #延后实际日期使周数从周五开始
                                       },
                               '月度' = month,
