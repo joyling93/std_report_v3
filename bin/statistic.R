@@ -18,13 +18,13 @@ db_clean <- function(db_type){
         if(db_type=='product_sec'){
                 dt_extra <- dt %>% 
                         dplyr::filter(任务类型=='销售序列模板') %>% 
-                        select(任务ID,A.方案设计者,A.方案指派日期,S.合同金额,S.消费金额) %>% 
+                        select(任务ID,A.方案设计者,A.方案指派日期,S.合同金额,S.消费金额,S.客户姓名,S.客户单位) %>% 
                         rename(主任务ID=任务ID) %>% 
                         mutate(主任务ID=tolower(主任务ID))
                         
                 dt2 <- dt %>% 
                         dplyr::filter(任务类型=='生产序列模板') %>% 
-                        select(-c(A.方案设计者,A.方案指派日期,S.合同金额,S.消费金额)) %>% 
+                        select(-c(A.方案设计者,A.方案指派日期,S.合同金额,S.消费金额,S.客户姓名,S.客户单位)) %>% 
                         mutate(
                                 主任务ID = unlist(map(标题,
                                                     ~tolower(str_extract(.x,regex('fw-?\\d+|DS-?\\d+', ignore_case = T))))),

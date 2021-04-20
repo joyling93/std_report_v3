@@ -88,7 +88,7 @@ dt <- dbReadTable(db,'cf_phrase')
 ##update db
 dbExecute(db,"UPDATE cf_phrase SET customfildID = '6041950b02a7659ab67d8ab1' WHERE name = 'S.消费金额'")
 ##插入值
-dbExecute(db,"INSERT INTO cf_phrase (customfildID,name) VALUES ('601cc7102745a7c6e1648b20','X1.基因合成载体产能')")
+dbExecute(db,"INSERT INTO cf_phrase (customfildID,name) VALUES ('6057f3ede2cbb21aa9fda492','延期原因')")
 
 
 
