@@ -17,7 +17,8 @@ report_generate <- function(file_name,file_path,pic_name,pic_path,project1,proje
         dt2 <- dt$data %>% 
                 keep(function(x){length(x)>0}) %>% 
                 reduce(left_join) %>% 
-                mutate(载体编号=fct_inorder(载体编号))
+                mutate(载体编号=fct_inorder(载体编号)) %>% 
+                drop_na(生产主任务标题,载体编号)#去除没有载体编号和标题的条目
         
         
         #从主标题中提取id

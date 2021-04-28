@@ -144,8 +144,10 @@ delay_cal <- function(dt,time_span,period_type){
                         预期周期 = map2_dbl(开始时间,截止时间,workday_cal),
                         实际周期 = map2_dbl(Su.实验实际开始日期,Su.实验实际完成日期,workday_cal),
                         delay_ratio = (预期周期-实际周期)/预期周期,
-                        project_delay = if_else(delay_ratio<0&CD.产能类型!='基因合成载体',1,0),
-                        filter.tag = if_else(delay_ratio<0&str_detect(CD.产能类型,'基因合成载体'),1,0),#标记在计算延期时需要去除的项
+                        project_delay = if_else(delay_ratio<0&CD.产能类型!='基因合成载体'&截止时间<Su.实验实际完成日期
+                                                ,1,0),
+                        filter.tag = if_else(delay_ratio<0&(str_detect(CD.产能类型,'基因合成载体')|截止时间>Su.实验实际完成日期)
+                                             ,1,0),#标记在计算延期时需要去除的项
                         distribution_delay = if_else((开始时间-Su.实验实际开始日期)/ddays(1)>1,1,0),
                         CD.组成产能 = as.character(CD.组成产能),
                         CD.产能类型 = strsplit(CD.产能类型,split="[|,，]"),
@@ -167,16 +169,6 @@ delay_cal <- function(dt,time_span,period_type){
                         ) %>% 
                 arrange(CD.子任务类型) %>% 
                 rename(姓名=CE.实验执行人姓名)
-        
-        # indent_product <- 
-        #         dt_capacity %>%
-        #         dplyr::filter(是否是子任务=='Y') %>% 
-        #         group_by(CE.实验执行人姓名,统计周期,CD.子任务类型) %>%
-        #         summarise(
-        #                 产值=sum(CD.子产能)
-        #         ) %>% 
-        #         arrange(CD.子任务类型) %>% 
-        #         rename(姓名=CE.实验执行人姓名)
         
         #小组延期度、延期率
         team_delay <- 
@@ -237,7 +229,6 @@ delay_cal <- function(dt,time_span,period_type){
                 )%>%
                 #distinct(主任务ID,.keep_all=T) %>% 
                 mutate(design_delay = map2_dbl(A.方案指派日期,开始时间,design_delay_cal))
-        #%>% dplyr::filter(dt_design_capacity,A.方案设计者=='张权')
         
         #计算除消费金额外的总计
         dt_summary <- 
