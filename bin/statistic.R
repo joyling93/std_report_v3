@@ -109,8 +109,21 @@ design_delay_cal <- function(x,y){
                 return(0)
         }else{
                 #判定非工作日间隔,包括第一天
-                weekend.hour <- sum(wday(x+days(0:ceiling((y-x)/ddays(1))))%in%c(1,7))*24
-                weekday.hour <- int.hour-weekend.hour
+                special_days <- list(
+                        'holidays'=ymd(
+                                c("2021年1月1日", "2021年1月2日", "2021年1月3日", "2021年2月11日", "2021年2月12日", "2021年2月13日", "2021年2月14日", "2021年2月15日", "2021年2月16日", "2021年2月17日", "2021年4月3日", "2021年4月4日", "2021年4月5日", "2021年5月1日", "2021年5月2日", "2021年5月3日", "2021年5月4日", "2021年5月5日", "2021年6月12日", "2021年6月13日", "2021年6月14日", "2021年9月19日", "2021年9月20日", "2021年9月21日", "2021年10月1日", "2021年10月2日", "2021年10月3日", "2021年10月4日", "2021年10月5日", "2021年10月6日", "2021年10月7日")
+                                ),
+                        'switch.days'=ymd(
+                                c("2021年2月7日", "2021年2月20日", "2021年4月25日", "2021年5月8日", "2021年9月18日", "2021年9月26日", "2021年10月9日")
+                        )
+                )
+                int.days <- x+days(0:ceiling((y-x)/ddays(1)))
+                offset1 <- sum(
+                        int.days%in%special_days[['holidays']][wday(special_days[['holidays']])%in%c(2:6)]
+                        )#计算除周末外的法定假日补偿
+                offset2 <- sum(int.days%in%special_days[['switch.days']])#计算调休补偿
+                weekend.days <- sum(wday(int.days)%in%c(1,7))
+                weekday.hour <- int.hour-(weekend.days+offset1-offset2)*24
                 if(weekday.hour<=48){
                         return(0)
                 }else{
