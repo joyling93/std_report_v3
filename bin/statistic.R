@@ -74,13 +74,50 @@ db_clean <- function(db_type){
                                )
         }else if(db_type=='exp_info'){
                 db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
-                dt <- dbReadTable(db,'exp_info')
+                dt_info <- dbReadTable(db,'exp_info')
                 DBI::dbDisconnect(db)
-                col_clean <- 
-                        colnames(dt) %>% 
-                        str_replace_all('^X\\.','') %>% 
-                        str_replace_all('\\.$','')
-                dt2 <- dt
+                dt_s <- dt %>% 
+                        dplyr::filter(任务类型%in%c('销售序列模板','售后序列模板')) %>% 
+                        select(任务ID)
+                
+                dt_p <- dt %>% 
+                        dplyr::filter(任务类型%in%c('生产序列模板')) %>% 
+                        dplyr::filter(是否是子任务=='Y') %>% 
+                        mutate(
+                                主任务ID = unlist(map(标题,
+                                                     ~tolower(str_extract(.x,regex('fw-?\\d+|DS-?\\d+', ignore_case = T))))),
+                                #为没有’-‘的任务ID添加’-‘，避免匹配丢失问题
+                                主任务ID = if_else(
+                                        str_detect(主任务ID,'-'),
+                                        主任务ID,
+                                        paste0(str_sub(主任务ID,1,2),'-',str_extract(主任务ID,'\\d+'))
+                                )
+                        ) %>% 
+                        select(CD.子任务类型,Su.实验实际完成日期,主任务ID)
+                
+                dt.fin <- 
+                        dt_p %>%         
+                        right_join(dt_s,by=c('主任务ID'='任务ID'))
+                
+                dt2 <- 
+                        dt_info %>% 
+                        mutate(
+                                CD.子任务类型=
+                                        if_else(is.na(病毒类型),'分子','病毒'),
+                                CD.子任务类型=
+                                        if_else(!is.na(细胞名称),'细胞',CD.子任务类型)
+                        ) %>% 
+                        mutate(
+                                主任务ID = unlist(map(生产主任务标题,
+                                                          ~tolower(str_extract(.x,regex('fw-?\\d+|DS-?\\d+', ignore_case = T))))),
+                                #为没有’-‘的任务ID添加’-‘，避免匹配丢失问题
+                                主任务ID = if_else(
+                                        str_detect(主任务ID,'-'),
+                                        主任务ID,
+                                        paste0(str_sub(主任务ID,1,2),'-',str_extract(主任务ID,'\\d+'))
+                                )
+                        ) %>% 
+                        left_join(dt.fin)
         }
         else{
                 dt2 <- dt %>% 
