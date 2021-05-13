@@ -143,6 +143,8 @@ ui <- dashboardPage(
                                                 dateInput('time_span',label = '选择统计日期',value = today()),
                                                 selectInput('period_type','选择统计种类',
                                                             c('周度','月度','年度'),selected='周度'),
+                                                selectInput('tag','特殊条件',
+                                                            c('无','不筛选特定时间'),selected='无'),
                                                 actionButton('statistic',label='统计'),
                                                 downloadButton('download_stat',label = '点此下载统计数据'),
                                                 hr()
@@ -385,10 +387,10 @@ server <- function(input, output) {
 
                 }else if(input$selected_db=='销售任务'){
                         dt <- db_clean('seal_sec')
-                        output_list <- seal_cal(dt,input$time_span,input$period_type)
+                        output_list <- seal_cal(dt,input$time_span,input$period_type,input$tag)
                         output$DT1 <-  DT::renderDT({
                                 #req(credentials()$user_auth)
-                                output_list[[1]]
+                                output_list[[1]][1:10,]
                         },
                         extensions = c('Buttons','Responsive','KeyTable'),
                         options = DT_options_list)

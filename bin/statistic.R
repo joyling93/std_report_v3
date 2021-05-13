@@ -54,17 +54,29 @@ db_clean <- function(db_type){
                                 CD.子任务类型 = if_else(CD.子任务类型=='','字段未填',CD.子任务类型),
                                 CE.实验执行人姓名 = if_else(CE.实验执行人姓名=='','字段未填',CE.实验执行人姓名)
                                 ) %>% 
-                        select(主任务ID,CE.实验执行人姓名,CD.子任务类型,CD.子产能) %>% 
+                        select(
+                                主任务ID,CE.实验执行人姓名,CD.子任务类型,CD.子产能,Su.实验实际开始日期,
+                                Su.实验实际完成日期,延期原因
+                                  ) %>% 
                         group_by(主任务ID) %>% 
-                        mutate(CE.实验执行人姓名 = str_c(CE.实验执行人姓名,collapse = ';')) %>% 
-                        drop_na() %>% 
-                        group_by(主任务ID,CE.实验执行人姓名,CD.子任务类型) %>% 
-                        summarise(CD.子产能=sum(as.numeric(CD.子产能))) %>% 
+                        mutate(
+                                CE.实验执行人姓名 = str_c(CE.实验执行人姓名,collapse = ';'),
+                                CD.子产能 = map_dbl(CD.子产能,function(x){
+                                        sum(as.numeric(
+                                                unlist(
+                                                strsplit(x,split='[[:punct:]]')
+                                                )
+                                                ))
+                                })
+                                ) %>% 
                         pivot_wider(names_from = CD.子任务类型,values_from=CD.子产能) %>% 
                         rename(任务ID=主任务ID,生产执行人=CE.实验执行人姓名)
                 
                 dt2 <- dt %>% 
                         dplyr::filter(任务类型=='销售序列模板') %>% 
+                        select(
+                                where(~!all(is.na(.x)))
+                        ) %>% 
                         left_join(dt_extra) %>% 
                         mutate(
                                 across(matches('时间|日期'),ymd_hms),
@@ -309,21 +321,31 @@ delay_cal <- function(dt,time_span,period_type){
         return(list(dt_summary1,dt_summary2,dt_summary3,dt.out))
 }
 
-seal_cal <- function(dt,time_span,period_type){
+seal_cal <- function(dt,time_span,period_type,tag){
         time_filter <- switch(period_type,
                               '周度' = function(x){
                                       as.character(cut(x,'week',start.on.monday=F))
                               },
                               '月度' = month,
                               '年度' = year)
-        
-        dt <-
-                dt %>%
-                mutate(
-                        D.任务周期.工作日 = as.numeric(D.任务周期.工作日),
-                        统计周期 = time_filter(开始时间)
+        if(tag=='无'){
+                dt <-
+                        dt %>%
+                        mutate(
+                                #D.任务周期.工作日 = as.numeric(D.任务周期.工作日),
+                                统计周期 = time_filter(A.合同签订日期)
                         ) %>%
-                filter(统计周期==time_filter(time_span))
+                        dplyr::filter(统计周期==time_filter(time_span))
+        }else if(tag=='不筛选特定时间'){
+                dt
+                        # dt %>%
+                        # mutate(
+                        #         D.任务周期.工作日 = as.numeric(D.任务周期.工作日),
+                        # )
+        }else{
+                dt
+        }
+        
                 
         return(list(dt))
 }
