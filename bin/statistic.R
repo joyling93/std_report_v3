@@ -34,8 +34,6 @@ db_clean <- function(db_type){
                                                 ,paste0(str_sub(主任务ID,1,2),'-',str_extract(主任务ID,'\\d+')))
                                   ) %>% 
                         left_join(dt_extra) %>% 
-                        # arrange(desc(import.time)) %>% 
-                        # dplyr::filter(!duplicated(任务ID)) %>% 
                         mutate(across(matches('时间|日期'),~ymd_hms(.x)),
                                across(contains('姓名'),as.factor),
                                #across(ends_with('产能'),as.numeric),
@@ -51,26 +49,23 @@ db_clean <- function(db_type){
                                 主任务ID = if_else(str_detect(主任务ID,'-'),
                                                 主任务ID
                                                 ,paste0(str_sub(主任务ID,1,2),'-',str_extract(主任务ID,'\\d+'))),
-                                CD.子任务类型 = if_else(CD.子任务类型=='','字段未填',CD.子任务类型),
+                                #CD.子任务类型 = if_else(is.na(CD.子任务类型),'字段未填',CD.子任务类型),
                                 CE.实验执行人姓名 = if_else(CE.实验执行人姓名=='','字段未填',CE.实验执行人姓名)
                                 ) %>% 
+                        drop_na(CD.子任务类型) %>% 
                         select(
                                 主任务ID,CE.实验执行人姓名,CD.子任务类型,CD.子产能,Su.实验实际开始日期,
                                 Su.实验实际完成日期,延期原因
                                   ) %>% 
-                        group_by(主任务ID) %>% 
-                        mutate(
-                                CE.实验执行人姓名 = str_c(CE.实验执行人姓名,collapse = ';'),
-                                CD.子产能 = map_dbl(CD.子产能,function(x){
-                                        sum(as.numeric(
-                                                unlist(
-                                                strsplit(x,split='[[:punct:]]')
-                                                )
-                                                ))
-                                })
-                                ) %>% 
-                        pivot_wider(names_from = CD.子任务类型,values_from=CD.子产能) %>% 
-                        rename(任务ID=主任务ID,生产执行人=CE.实验执行人姓名)
+                        pivot_wider(names_from = CD.子任务类型,
+                                    values_from=c(CD.子产能,Su.实验实际开始日期,CE.实验执行人姓名,
+                                                  Su.实验实际完成日期,延期原因),
+                                    names_glue = "{CD.子任务类型}_{.value}",
+                                    names_sort = TRUE
+                                    ) %>% 
+                        unnest() %>% 
+                        rename(任务ID=主任务ID) %>% 
+                        select(任务ID,contains('分子'),contains('病毒'),contains('细胞'))
                 
                 dt2 <- dt %>% 
                         dplyr::filter(任务类型=='销售序列模板') %>% 
@@ -79,11 +74,20 @@ db_clean <- function(db_type){
                         ) %>% 
                         left_join(dt_extra) %>% 
                         mutate(
-                                across(matches('时间|日期'),ymd_hms),
-                                across(contains('姓名'),as.factor),
+                                #across(matches('时间|日期'),ymd_hms),
+                                #across(contains('姓名'),as.factor),
                                 across(ends_with('产能'),as.numeric),
-                                across(contains('周期'),as.numeric)
+                                across(contains('周期'),as.numeric),
+                                是否重复=if_else(
+                                        任务ID%in%任务ID[duplicated(任务ID)]
+                                        ,'重复','未重复'
+                                )
                                )
+                
+                #重复项标注
+                
+                
+                
         }else if(db_type=='exp_info'){
                 db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
                 dt_info <- dbReadTable(db,'exp_info')
