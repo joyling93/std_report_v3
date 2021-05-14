@@ -60,8 +60,7 @@ db_clean <- function(db_type){
                         pivot_wider(names_from = CD.子任务类型,
                                     values_from=c(CD.子产能,Su.实验实际开始日期,CE.实验执行人姓名,
                                                   Su.实验实际完成日期,延期原因),
-                                    names_glue = "{CD.子任务类型}_{.value}",
-                                    names_sort = TRUE
+                                    names_glue = "{CD.子任务类型}_{.value}"
                                     ) %>% 
                         unnest() %>% 
                         rename(任务ID=主任务ID) %>% 
@@ -83,11 +82,6 @@ db_clean <- function(db_type){
                                         ,'重复','未重复'
                                 )
                                )
-                
-                #重复项标注
-                
-                
-                
         }else if(db_type=='exp_info'){
                 db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
                 dt_info <- dbReadTable(db,'exp_info')

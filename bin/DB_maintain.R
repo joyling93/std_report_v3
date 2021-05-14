@@ -87,8 +87,26 @@ dbDisconnect(db)
 dt <- dbReadTable(db,'cf_phrase')
 ##update db
 dbExecute(db,"UPDATE cf_phrase SET customfildID = '6041950b02a7659ab67d8ab1' WHERE name = 'S.消费金额'")
-##插入值
-dbExecute(db,"INSERT INTO cf_phrase (customfildID,name) VALUES ('6057f3ede2cbb21aa9fda492','延期原因')")
+dbExecute(db,"UPDATE cf_phrase SET name = 'Ag.整体实验售价' WHERE customfildID = '609a51283b6100d8db6a8a69'")
+##插入值('6057f3ede2cbb21aa9fda492','延期原因')
+tribble(
+        ~id,~name,
+        '601cc91d2daa3dd3bdb40090','S.客户联系信息',
+        '601cc91d2daa3dd3bdb40092','S.预付款任务ID',
+        '601cc91d2daa3dd3bdb40080','S.折扣',
+        '605188190ec747e2eac35b9f','S.促销',
+        '601cc91d2daa3dd3bdb40084','Sp.是否退单',
+        '601cc91d2daa3dd3bdb4006f','A.变动金额',
+        '601cc91d2daa3dd3bdb40070','F.已开票',
+        '601cc91d2daa3dd3bdb40071','F.未回款',
+        '609a50f38be477958c759a75','Ag.整体实验固定费用',
+        '609a51283b6100d8db6a8a69','Ag.整体实验售价',
+        '601cc91d2daa3dd3bdb4007f','W.出库日期'
+) %>% 
+        pwalk(function(id,name){
+                dbExecute(db,paste0("INSERT INTO cf_phrase (customfildID,name) VALUES ('",id,"'",",","'",name,"')"))
+        })
+
 
 
 
