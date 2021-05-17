@@ -5,6 +5,7 @@ source('./bin/archive.R',encoding = 'UTF8')
 source('./bin/input_test.R',encoding = 'UTF8')
 source('./bin/statistic.R',encoding = 'UTF8')
 source('./bin/tb_query.R',encoding = 'UTF8')
+source('./bin/utility.R',encoding = 'UTF8')
 library(shiny)
 library(shinydashboard)
 library(officer)
@@ -111,7 +112,7 @@ ui <- dashboardPage(
                                                 actionButton('archive_auto',label='点此开始自动归档'),
                                                 hr(),
                                                 selectInput('archieve_type','选择归档信息种类',
-                                                            c('TB任务','实验记录（信息）表','TB任务2020')),
+                                                            c('TB任务','实验记录（信息）表','TB任务2020','企管统计辅助表')),
                                                 fileInput('db_file',
                                                           label = '上传excel文件',
                                                           multiple = T),
@@ -139,7 +140,7 @@ ui <- dashboardPage(
                                         
                                         sidebarPanel(
                                                 selectInput('selected_db','选择统计种类',
-                                                            c('生产任务','销售任务','实验记录表')),
+                                                            c('生产任务','销售任务','企管统计','实验记录表')),
                                                 dateInput('time_span',label = '选择统计日期',value = today()),
                                                 selectInput('period_type','选择统计种类',
                                                             c('周度','月度','年度'),selected='周度'),
@@ -404,6 +405,16 @@ server <- function(input, output) {
                                 }
                         )
                         
+                        
+                }else if(input$selected_db=='企管统计'){
+                        dt <- db_clean('management_sec')
+                        output_list <- management_data_cal(dt,input$time_span,input$period_type,input$tag)
+                        output$DT1 <-  DT::renderDT({
+                                #req(credentials()$user_auth)
+                                output_list[[1]]
+                        },
+                        extensions = c('Buttons','Responsive','KeyTable'),
+                        options = DT_options_list)
                         
                 }else if(input$selected_db=='实验记录表'){
                         dt <- db_clean('exp_info')

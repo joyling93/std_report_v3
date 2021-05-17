@@ -14,9 +14,30 @@ archive_files <- function(type,filepath,db){
         out_info <- switch (type,
                             'TB任务' = tb_db(filepath,db),
                             'TB任务2020' = tb_db2(filepath,db),
-                            '实验记录（信息）表' = record_db(filepath,db)
+                            '实验记录（信息）表' = record_db(filepath,db),
+                            '企管统计辅助表' = supp_db(filepath,db)
         )
         return(out_info)
+}
+
+supp_db <- function(filepath,db){
+        out_info <- '归档成功'
+        file_path <- filepath[str_detect(filepath,'\\.xlsx|\\.xls')]
+        
+        sheet.list <- names(loadWorkbook(file_path))
+        
+        dt.list <- 
+                purrr::map(sheet.list,function(sheet){
+                        read.xlsx(file_path,sheet=sheet,detectDates = T) %>% 
+                                mutate(日期=as.character(日期))
+                })
+        names(dt.list) <- sheet.list
+        db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
+        purrr::walk2(dt.list,sheet.list,function(dt,name){
+                dbWriteTable(db,name,dt,overwrite=T)
+        })
+        dbDisconnect(db)
+        out_info
 }
 
 tb_db <- function(filepath,db){

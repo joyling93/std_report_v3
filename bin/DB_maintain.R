@@ -4,7 +4,7 @@ library(readxl)
 db <- DBI::dbConnect(SQLite(),dbname='/Users/zhuomingx/Desktop/Rbio/std_report_v3/data/testDB.db')
 dbListTables(db)
 
-dt_fin <- dbReadTable(db,'db') 
+dt_fin <- dbReadTable(db,'材料、基因合成、测序等') 
 
 file_p <- '/Users/zhuomingx/Desktop/Rbio/std_report_v3/debug/test/全任务归档测试.xlsx'
 dt <- openxlsx::loadWorkbook(file_p)
@@ -109,6 +109,20 @@ tribble(
 
 
 
-
-
-
+#辅助表读取
+temp <- dir('/Users/zhuomingx/Desktop/Rbio/std_report_v3/debug/test/'
+            ,'^企管输入.xlsx',full.names = T)
+sheet.list <- names(openxlsx::loadWorkbook(temp))
+date.input <- 1
+supp.dt <- 
+        map(sheet.list,function(sheet){
+                openxlsx::read.xlsx(temp,sheet=sheet,detectDates = T) %>% 
+                        dplyr::filter(month(日期)==date.input) %>% 
+                        dplyr::select(-日期)
+        })
+names(supp.dt) <- sheet.list
+enframe(supp.dt) %>% 
+        pwalk(function(name,value){
+                dbWriteTable(db,name,value,overwrite=T)
+        })
+dbDisconnect(db)

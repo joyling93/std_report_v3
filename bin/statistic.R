@@ -82,6 +82,8 @@ db_clean <- function(db_type){
                                         ,'重复','未重复'
                                 )
                                )
+        }else if(db_type=='management_sec'){
+                dt2 <- data_extraction(dt)
         }else if(db_type=='exp_info'){
                 db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
                 dt_info <- dbReadTable(db,'exp_info')
