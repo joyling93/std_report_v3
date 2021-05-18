@@ -138,43 +138,43 @@ management_data_cal <-
                 
                 #main
                 #过滤统计周期
-                time_filter <- switch(period_type,
-                                      '周度' = function(x){
-                                              as.character(cut(x,'week',start.on.monday=F))
-                                      },
-                                      '月度' = month,
-                                      '年度' = year)
-                
-        
-                if(tag=='无'){
-                        dt <-
-                                dt %>%
-                                mutate(
-                                        #D.任务周期.工作日 = as.numeric(D.任务周期.工作日),
-                                        统计周期 = time_filter(A.合同签订日期)
-                                ) %>%
-                                dplyr::filter(统计周期==time_filter(time_span))
-                        
-                        db.list <- c("人工","开票额","房租水电","日常经营","材料、基因合成、测序等","预付款" )
-                        db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
-                        supp.dt <- 
-                                map(db.list,function(dbname){
-                                        dbReadTable(db,dbname)%>%
-                                                dplyr::filter(time_filter(ymd(日期))==time_filter(time_span)) %>% 
-                                                select(-日期)
-                                })
-                        dbDisconnect(db)
-                        names(supp.dt) <- db.list
-                        
-                }else if(tag=='不筛选特定时间'){
-                        dt
-                        # dt %>%
-                        # mutate(
-                        #         D.任务周期.工作日 = as.numeric(D.任务周期.工作日),
-                        # )
-                }else{
-                        dt
-                }
+                # time_filter <- switch(period_type,
+                #                       '周度' = function(x){
+                #                               as.character(cut(x,'week',start.on.monday=F))
+                #                       },
+                #                       '月度' = month,
+                #                       '年度' = year)
+                # 
+                # 
+                # if(tag=='无'){
+                #         dt <-
+                #                 dt %>%
+                #                 mutate(
+                #                         #D.任务周期.工作日 = as.numeric(D.任务周期.工作日),
+                #                         统计周期 = time_filter(A.合同签订日期)
+                #                 ) %>%
+                #                 dplyr::filter(统计周期==time_filter(time_span))
+                #         
+                #         db.list <- c("人工","开票额","房租水电","日常经营","材料、基因合成、测序等","预付款" )
+                #         db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
+                #         supp.dt <- 
+                #                 map(db.list,function(dbname){
+                #                         dbReadTable(db,dbname)%>%
+                #                                 dplyr::filter(time_filter(ymd(日期))==time_filter(time_span)) %>% 
+                #                                 select(-日期)
+                #                 })
+                #         dbDisconnect(db)
+                #         names(supp.dt) <- db.list
+                #         
+                # }else if(tag=='不筛选特定时间'){
+                #         dt
+                #         # dt %>%
+                #         # mutate(
+                #         #         D.任务周期.工作日 = as.numeric(D.任务周期.工作日),
+                #         # )
+                # }else{
+                #         dt
+                # }
                 
                 #产值和比例计算
                 #统计字段提取和质控
@@ -273,7 +273,7 @@ management_data_cal <-
                 
                 ##销售额和比例计算
                 #按业务类别拆分销售额比例
-                seals.dt <- dt %>% 
+                dt.stat2 <- dt %>% 
                         mutate(
                                 S.消费金额=map_int(S.消费金额,function(x){
                                         sum(as.integer(str_split(x, ',',simplify = T)),na.rm = T)
@@ -284,7 +284,11 @@ management_data_cal <-
                                                        细胞=c('细胞检测','细胞系构建','细胞'),
                                                        大综合=c('大综合','代理大综合')
                                 )
-                        ) %>% 
+                        ) 
+                        
+                seals.dt <- 
+                        dt.stat2 %>% 
+                        dplyr::filter(!str_detect(A.业务类别,'预付款消费')) %>% 
                         group_by(new.group) %>% 
                         summarise(
                                 sum=sum(S.合同金额)
@@ -300,9 +304,18 @@ management_data_cal <-
                         ) %>% 
                         pull(ratio,name=type1)
                 
+                #无预付款和其他比例
+                seals.ratio_not_adv_others <- 
+                        seals.dt %>% 
+                        dplyr::filter(!type1%in%c('其他','预付款')) %>% 
+                        mutate(
+                                ratio=sum/sum(sum)
+                        ) %>% 
+                        pull(ratio,name=type1)
+                
                 #按销售额比例计算预付款剩余
                 deposit <- 
-                        enframe(seals.ratio.not_others,name = 'type1') %>% 
+                        enframe(seals.ratio_not_adv_others,name = 'type1') %>% 
                         mutate(
                                 sum=value*supp.dt[['预付款']]$剩余预付款,
                                 tag='deposit'
@@ -352,6 +365,22 @@ management_data_cal <-
                         group_by(subtype,tag) %>% 
                         summarise(
                                 sum=sum(value)
+                        )%>% 
+                        pivot_wider(
+                                names_from = tag,
+                                values_from = sum
+                        ) %>% 
+                        mutate(
+                                小计=sum(cost,fee,labor,na.rm = T)
+                        ) %>% 
+                        ungroup() %>% 
+                        mutate(
+                                `比例%`=round(小计/sum(小计,na.rm = T)*100,digits = 2)
+                        ) %>% 
+                        rename(
+                                材料=cost,
+                                日常经营=fee,
+                                人工=labor
                         )
                 
                 #按业务类型汇总成本
@@ -363,10 +392,15 @@ management_data_cal <-
                         )%>% 
                         mutate(
                                 ratio=sum/sum(sum)
-                        )
+                        ) 
+                        
                 #按部门汇总成本
                 summary3 <- 
-                        summary1 %>% 
+                        dt.all %>% 
+                        group_by(subtype,tag) %>% 
+                        summarise(
+                                sum=sum(value)
+                        )%>% 
                         group_by(subtype) %>% 
                         summarise(
                                 sum=sum(sum)
@@ -395,9 +429,9 @@ management_data_cal <-
                         ) %>% 
                         select(type1,sum,tag) %>% 
                         pivot_wider(names_from = 'tag',values_from='sum') %>% 
-                        dplyr::filter(
-                                type1%in%c('分子','慢病毒','腺病毒','腺相关病毒','细胞')
-                        ) %>% 
+                        # dplyr::filter(
+                        #         type1%in%c('分子','慢病毒','腺病毒','腺相关病毒','细胞')
+                        # ) %>% 
                         mutate(
                                 `成本销售比%`=round(
                                         成本小计/(销售额小计+预付款剩余小计)*100,
@@ -406,7 +440,17 @@ management_data_cal <-
                                         成本小计/生产产值*100,
                                         digits = 2)
                         )
-                list(output,list('产值数据'=dt.stat,'异常项目'=error.table))
+                list(output,
+                     list(
+                          '成本销售比和成本产值比'=output,
+                          '按部门和成本类型汇总成本'=summary1,
+                          '按业务类型汇总成本'=summary2,
+                          '按部门汇总成本'=summary3,
+                          '产值数据'=dt.stat,
+                          '销售额数据'=dt.stat2,
+                          '异常项目'=error.table
+                          )
+                     )
         
 }
 
