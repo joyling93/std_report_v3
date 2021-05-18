@@ -416,6 +416,15 @@ server <- function(input, output) {
                         extensions = c('Buttons','Responsive','KeyTable'),
                         options = DT_options_list)
                         
+                        output$download_stat <- downloadHandler(
+                                filename=function(){
+                                        y <- paste0('统计数据.xlsx')
+                                },
+                                content=function(file){
+                                        write.xlsx(output_list[[2]], file)
+                                }
+                        )
+                                
                 }else if(input$selected_db=='实验记录表'){
                         dt <- db_clean('exp_info')
                         output$DT1 <-  DT::renderDT({
