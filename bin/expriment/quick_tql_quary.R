@@ -1,4 +1,5 @@
 tql.query <- "_projectId=5fd6c35b083cba2bde5df319 AND isArchived = false"
+#tql.query <-'_projectId=58081fe94863251f4269aaf3 AND _tasklistId=5dedbcd453b99f0020ec76aa OR _tasklistId=5ce122f34f895a001991ae12 isArchived = false'
 uniqueId.prefix <- "fw-"
 #dt <- tql_query(tql.query,uniqueId.prefix)
 library(httr)
@@ -19,7 +20,7 @@ url <- 'https://open.teambition.com/api/task/tqlsearch'
 pageToken <- ''
 
 payload <- list("tql"= tql.query,
-                "pageSize"= 10,
+                "pageSize"= 100,
                 "pageToken"= pageToken,
                 "orderBy"= "dueDate"
 )
