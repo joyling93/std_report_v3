@@ -15,7 +15,8 @@ archive_files <- function(type,filepath,db){
                             'TB任务' = tb_db(filepath,db),
                             'TB任务2020' = tb_db2(filepath,db),
                             '实验记录（信息）表' = record_db(filepath,db),
-                            '企管统计辅助表' = supp_db(filepath,db)
+                            '企管统计辅助表' = supp_db(filepath,db),
+                            '台账' = ledger_db(filepath,db)
         )
         return(out_info)
 }
@@ -147,4 +148,21 @@ function(filepath,db){
         dbDisconnect(db)
         out_info <- '归档成功'
 }
+
+ledger_db <- 
+function(filepath,db){
+        file_path <- filepath[str_detect(filepath,'\\.xlsx')]
+        ledger_raw <- openxlsx::read.xlsx(filepath,detectDates=T,sheet='原始数据-台账') %>% 
+                dplyr::filter(!str_detect(开票日期,'0000/0/0')) %>% 
+                mutate(
+                        across(matches('日期$'),as.Date)
+                )
+        db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
+        dbWriteTable(db,'ledger_raw',ledger_raw,overwrite=T)
+        dbDisconnect(db)
+        out_info <- '归档成功'
+}
+
+
+
 

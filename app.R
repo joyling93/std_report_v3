@@ -115,7 +115,7 @@ ui <- dashboardPage(
                                                 actionButton('archive_auto',label='点此开始自动归档'),
                                                 hr(),
                                                 selectInput('archieve_type','选择归档信息种类',
-                                                            c('TB任务','实验记录（信息）表','TB任务2020','企管统计辅助表')),
+                                                            c('TB任务','实验记录（信息）表','TB任务2020','企管统计辅助表','台账')),
                                                 fileInput('db_file',
                                                           label = '上传excel文件',
                                                           multiple = T),
@@ -143,7 +143,7 @@ ui <- dashboardPage(
                                         
                                         sidebarPanel(
                                                 selectInput('selected_db','选择统计种类',
-                                                            c('生产任务','销售任务','企管统计','实验记录表')),
+                                                            c('生产任务','销售任务','企管统计','实验记录表','销售提成')),
                                                 dateInput('time_span',label = '选择统计日期',value = today()),
                                                 selectInput('period_type','选择统计种类',
                                                             c('周度','月度','年度'),selected='周度'),
@@ -186,10 +186,7 @@ ui <- dashboardPage(
         )
 )
         
-                        
-                       
-                
-        
+
 server <- function(input, output) {
         # call the logout module with reactive trigger to hide/show
         logout_init <- callModule(shinyauthr::logout, 
@@ -446,6 +443,26 @@ server <- function(input, output) {
                                         write.xlsx(dt, file)
                                 }
                         )
+                }else if(input$selected_db=='销售提成'){
+                        dt.list <- db_clean('sales_commission_cal')
+                        output_list <- seals_commission_cal(dt.list[[1]],dt.list[[2]],input$time_span,input$period_type,input$tag)
+                        
+                        output$DT1 <-  DT::renderDT({
+                                #req(credentials()$user_auth)
+                                output_list[[1]]
+                        },
+                        extensions = c('Buttons','Responsive','KeyTable'),
+                        options = DT_options_list)
+                        
+                        output$download_stat <- downloadHandler(
+                                filename=function(){
+                                        y <- paste0('统计数据.xlsx')
+                                },
+                                content=function(file){
+                                        write.xlsx(output_list, file)
+                                }
+                        )
+                        
                 }else{
                         dt <- db_clean('record_db')
                 }
