@@ -153,8 +153,8 @@ ledger_db <-
 function(filepath,db){
         file_path <- filepath[str_detect(filepath,'\\.xlsx')]
         ledger_raw <- openxlsx::read.xlsx(filepath,detectDates=T,sheet='原始数据-台账') %>% 
-                dplyr::filter(!str_detect(开票日期,'0000/0/0')) %>% 
                 mutate(
+                        开票日期=if_else(str_detect(开票日期,'0000/0/0'),NA_character_,开票日期),
                         across(matches('日期$'),as.Date)
                 )
         db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')

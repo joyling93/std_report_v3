@@ -170,10 +170,10 @@ design_delay_cal <- function(x,y){
                 special_days <- list(
                         'holidays'=ymd(
                                 c("2021年1月1日", "2021年1月2日", "2021年1月3日", "2021年2月11日", "2021年2月12日", "2021年2月13日", "2021年2月14日", "2021年2月15日", "2021年2月16日", "2021年2月17日", "2021年4月3日", "2021年4月4日", "2021年4月5日", "2021年5月1日", "2021年5月2日", "2021年5月3日", "2021年5月4日", "2021年5月5日", "2021年6月12日", "2021年6月13日", "2021年6月14日", "2021年9月19日", "2021年9月20日", "2021年9月21日", "2021年10月1日", "2021年10月2日", "2021年10月3日", "2021年10月4日", "2021年10月5日", "2021年10月6日", "2021年10月7日")
-                                ),
+                                ),#法定假日
                         'switch.days'=ymd(
                                 c("2021年2月7日", "2021年2月20日", "2021年4月25日", "2021年5月8日", "2021年9月18日", "2021年9月26日", "2021年10月9日")
-                        )
+                        )#工作日调休
                 )
                 int.days <- x+days(0:ceiling((y-x)/ddays(1)))
                 offset1 <- sum(
@@ -216,7 +216,7 @@ delay_cal <- function(dt,time_span,period_type){
                         实际周期 = map2_dbl(Su.实验实际开始日期,Su.实验实际完成日期,workday_cal),
                         delay_ratio = (预期周期-实际周期)/预期周期,
                         project_delay = if_else(delay_ratio<0&CD.产能类型!='基因合成载体'&截止时间<Su.实验实际完成日期
-                                                ,1,0),
+                                                ,1,0),#标记延期项目
                         filter.tag = if_else(delay_ratio<0&(str_detect(CD.产能类型,'基因合成载体')|截止时间>Su.实验实际完成日期)
                                              ,1,0),#标记在计算延期时需要去除的项
                         distribution_delay = if_else((开始时间-Su.实验实际开始日期)/ddays(1)>1,1,0),
@@ -375,24 +375,24 @@ seals_commission_cal <- function(tb_raw,ledger_raw,time_span,period_type,tag){
                               },
                               '月度' = month,
                               '年度' = year)
-        #开票日期格式化
+        #tb数据清洗
         tb.data <- 
                 tb_raw %>% 
                 mutate(
                         任务ID=if_else(str_detect(任务ID,'ds'),str_match(标题,regex('A-FW-\\d+',ignore_case = T)),任务ID),
                         
-                        link=tolower(str_replace_all(任务ID,'[ -]',''))
+                        link=tolower(str_replace_all(任务ID,'[ -]',''))#统一link格式
                 ) %>% 
                 dplyr::filter(任务类型=='销售序列模板') %>% 
                 select(标题,任务ID,A.合同签订日期,Ag.外包成本,A.业务类别,S.销售姓名,
                          S.客户姓名,S.合同金额,S.消费金额,F.未回款,F.已开票,link) %>% 
                 separate(A.业务类别,into = c('一级任务类别','二级任务类别'),sep = ' / ') %>% 
                 mutate(
-                        一级任务类别=if_else(一级任务类别=='预付款消费'&二级任务类别=='代理','预付款消费代理',一级任务类别),
+                        一级任务类别=if_else(一级任务类别=='预付款消费'&二级任务类别=='代理','预付款消费代理',一级任务类别),#将二级任务为代理的预付款消费任务改为’预付款消费代理‘
                         across(matches('成本|金额'),as.numeric)
                 )
         
-        
+        #台账数据整合
         dt.all <- 
                 ledger_raw %>% 
                 mutate(
@@ -407,21 +407,22 @@ seals_commission_cal <- function(tb_raw,ledger_raw,time_span,period_type,tag){
                                           西南大客户=c('西南大客户','张义凯'),
                                           other_level=c('销售专员')
                         )
-                ) 
-        # %>% 
-        #         drop_na(开票日期,回款日期,A.合同签订日期)
-        
+                ) %>% 
+                drop_na(A.合同签订日期)#去除与签订合同无关的项目
+
+        #开票额统计
         invoice.dt <- 
                 dt.all %>% 
                 dplyr::filter(
                         !(是否作废重开票=='是'&作废=='是'&开具金额<0),A.合同签订日期>as.Date('2020-07-31'),
-                        time_filter(ymd(开票日期))==time_filter(time_span),year(ymd(开票日期))==year(time_span)
+                        time_filter(ymd(开票日期))==time_filter(time_span),
+                        year(ymd(开票日期))==year(time_span)#限定统计周期所在年份
                 ) %>% 
                 group_by(一级任务类别,销售类别,销售姓名,time_filter(开票日期)) %>% 
                 summarise(
                         开具金额=sum(开具金额)
                 )
-        
+        #回款额统计
         payment.dt <- 
                 dt.all %>% 
                 dplyr::filter(
@@ -434,6 +435,7 @@ seals_commission_cal <- function(tb_raw,ledger_raw,time_span,period_type,tag){
                 ) %>% 
                 drop_na(一级任务类别)
         
+        #预付款额统计
         ##预付款消费信息以tb字段为准，须以S.销售姓名修改销售姓名和销售类别
         advance.dt <- 
                 dt.all %>% 

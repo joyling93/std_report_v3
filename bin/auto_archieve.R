@@ -51,12 +51,12 @@ auto_archieve <- function(){
                        )
 
         #合并数据库，以导入时间排序，去除旧数据
-        dt_fin <- 
-        bind_rows(dt_new,dt_db) %>% 
-                arrange(desc(import.time)) %>% 
-                dplyr::filter(!duplicated(任务ID)) 
+        # dt_fin <- 
+        # bind_rows(dt_new,dt_db) %>% 
+        #         arrange(desc(import.time)) %>% 
+        #         dplyr::filter(!duplicated(任务ID)) 
         
-        dbWriteTable(db,'db',dt_fin,overwrite=T)
+        dbWriteTable(db,'db',dt_new,overwrite=T)
         dbDisconnect(db)
         print('2021新流程自动归档成功')
 }
