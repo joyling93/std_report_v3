@@ -376,12 +376,19 @@ server <- function(input, output) {
                         extensions = c('Buttons','Responsive','KeyTable'),
                         options = DT_options_list)
                         
+                        output$DT4 <-  DT::renderDT({
+                                #req(credentials()$user_auth)
+                                output_list[[4]]
+                        },
+                        extensions = c('Buttons','Responsive','KeyTable'),
+                        options = DT_options_list)
+                        
                         output$download_stat <- downloadHandler(
                                 filename=function(){
                                         y <- paste0('统计数据.xlsx')
                                 },
                                 content=function(file){
-                                        write.xlsx(output_list[[4]], file)
+                                        write.xlsx(output_list[[5]], file)
                                 }
                         ) 
                         

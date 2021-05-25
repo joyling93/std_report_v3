@@ -301,6 +301,17 @@ delay_cal <- function(dt,time_span,period_type){
                 #distinct(主任务ID,.keep_all=T) %>% 
                 mutate(design_delay = map2_dbl(A.方案指派日期,开始时间,design_delay_cal))
         
+        dt_others <- 
+                dt %>% 
+                dplyr::filter(是否是子任务=='N') %>%
+                mutate(
+                        统计周期 = time_filter(Su.实验实际完成日期)
+                )%>%
+                dplyr::filter(
+                        year(Su.实验实际完成日期)==year(time_span),
+                        统计周期==time_filter(time_span)
+                )
+        
         #计算除消费金额外的总计
         dt_summary <- 
         dt_design_capacity %>% 
@@ -326,8 +337,16 @@ delay_cal <- function(dt,time_span,period_type){
                 mutate(方案设计产值=S.消费金额+S.合同金额) %>% 
                 select(-c(S.消费金额,S.合同金额))
         
+        #定期计算包装细胞盘数
+        dt_summary4 <- 
+                dt_others %>% 
+                group_by(统计周期) %>% 
+                summarise(
+                        包装细胞盘数总计=sum(as.numeric(MD.包装细胞盘数),na.rm = T)
+                )
+        
         dt.out <- list('生产相关'=dt_capacity,'方案设计相关'=dt_design_capacity)
-        return(list(dt_summary1,dt_summary2,dt_summary3,dt.out))
+        return(list(dt_summary1,dt_summary2,dt_summary3,dt_summary4,dt.out))
 }
 
 seal_cal <- function(dt,time_span,period_type,tag){

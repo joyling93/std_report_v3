@@ -143,13 +143,10 @@ auto_archieve2 <- function(){
         db <- DBI::dbConnect(SQLite(),dbname='data/testDB.db')
         dt_db <- dbReadTable(db,'db') 
         
-        #合并数据库，以导入时间排序，去除旧数据
-        # dt_fin <- 
-        #         bind_rows(dt_update,dt_db) %>% 
-        #         arrange(desc(import.time)) %>% 
-        #         dplyr::filter(!duplicated(任务ID)) 
+        #合并2021数据库，统一表头
+        dt_fin <- bind_rows(dt_db,dt_update)
         
-        dbWriteTable(db,'db',dt_update,overwrite=T)
+        dbWriteTable(db,'db',dt_fin,overwrite=T)
         dbDisconnect(db)
         print('2020旧任务自动归档成功')
 }

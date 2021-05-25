@@ -26,9 +26,9 @@ management_data_cal <-
                                                                         type1=type,
                                                                         subtype=c('管理','仓库','产品','销售','企管'),
                                                                         value=c(
-                                                                                labor.table$生产管理*contribute_ratio_not_cell[type],
+                                                                                labor.table$生产管理*contribute_ratio[type],
                                                                                 labor.table$仓库*contribute_ratio[type],
-                                                                                0,
+                                                                                labor.table$产品生产支持*contribute_ratio[type],
                                                                                 labor.table$销售*seals.ratio.not_others[type],
                                                                                 labor.table$企管*seals.ratio.not_others[type]
                                                                         )
@@ -219,15 +219,15 @@ management_data_cal <-
                                         pull(p.ratio,name=产值类型)#以命名向量形式导出比例，方便引用
                                 
                                 #计算不含细胞的产能比例
-                                contribute_ratio_not_cell <- 
-                                        contribute_table %>% 
-                                        dplyr::filter(产值类型!='细胞') %>% 
-                                        ungroup() %>% 
-                                        mutate(
-                                                p.ratio.nc=p.value/sum(p.value),
-                                                .keep="unused"
-                                        ) %>% 
-                                        pull(p.ratio.nc,name=产值类型)
+                                # contribute_ratio_not_cell <- 
+                                #         contribute_table %>% 
+                                #         dplyr::filter(产值类型!='细胞') %>% 
+                                #         ungroup() %>% 
+                                #         mutate(
+                                #                 p.ratio.nc=p.value/sum(p.value),
+                                #                 .keep="unused"
+                                #         ) %>% 
+                                #         pull(p.ratio.nc,name=产值类型)
                                 
                                 #计算仅病毒产能比例
                                 contribute_ratio_virus <- 

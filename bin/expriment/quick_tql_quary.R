@@ -20,7 +20,7 @@ url <- 'https://open.teambition.com/api/task/tqlsearch'
 pageToken <- ''
 
 payload <- list("tql"= tql.query,
-                "pageSize"= 100,
+                "pageSize"= 10,
                 "pageToken"= pageToken,
                 "orderBy"= "dueDate"
 )
