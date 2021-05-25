@@ -139,12 +139,27 @@ tb_db2 <- function(filepath,db){
 record_db <- 
 function(filepath,db){
         file_path <- filepath[str_detect(filepath,'\\.xlsx|\\.xls')]
-        dt <- purrr::map_dfr(file_path,readxl::read_xlsx,col_types = "text")
-        dt_new <- unite(dt,载体,载体信息,载体编号,sep = '',na.rm = T) %>% 
-                mutate(import.time=as.numeric(Sys.time()))
-        db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
         
-        dbWriteTable(db,'exp_info',dt_new,overwrite=T)
+        dt_new <- purrr::map_dfr(file_path,function(x){
+                dt <- readxl::read_xlsx(x,col_types = "text")%>% 
+                        mutate(import.time=as.numeric(Sys.time()))
+                if('载体编号'%in%colnames(dt)){
+                        colnames(dt)[match('载体编号',colnames(dt))] <- '载体'
+                }else if('载体信息'%in%colnames(dt)){
+                        colnames(dt)[match('载体信息',colnames(dt))] <- '载体'
+                }
+                dt
+        })
+        
+        db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
+        dt_db <- dbReadTable(db,'exp_info')
+        dt_fin <-
+        bind_rows(dt_new,dt_db) %>%
+                arrange(desc(import.time)) %>%
+                dplyr::filter(!duplicated(生产主任务标题))
+        
+        
+        dbWriteTable(db,'exp_info',dt_fin,overwrite=T)
         dbDisconnect(db)
         out_info <- '归档成功'
 }
