@@ -93,7 +93,7 @@ dbExecute(db,"UPDATE cf_phrase SET name = 'Ag.整体实验售价' WHERE customfi
 ##插入值('6057f3ede2cbb21aa9fda492','延期原因')
 tribble(
         ~id,~name,
-        '60acbccfb8bb4bc40bd67660','MD.包装细胞盘数'
+        '601cc91d2daa3dd3bdb4007d','Ag.外包成本'
         
 ) %>% 
         pwalk(function(id,name){

@@ -132,13 +132,13 @@ db_clean <- function(db_type){
                         left_join(dt.fin)
         }else if(db_type=='sales_commission_cal'){
                 db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
-                ledger.raw <- dbReadTable(db,'ledger_raw') %>% 
+                ledger_raw <- dbReadTable(db,'ledger_raw') %>% 
                         mutate(
                                 开票日期=as_date(开票日期),
                                 回款日期=as_date(回款日期)
                                 )
                 DBI::dbDisconnect(db)
-                dt2 <- list(dt,ledger.raw)
+                dt2 <- list(dt,ledger_raw)
         }
         else{
                 dt2 <- dt %>% 
@@ -201,7 +201,7 @@ delay_cal <- function(dt,time_span,period_type){
                                       },
                               '月度' = month,
                               '年度' = year)
-        
+        #产能计算原始表
         dt_capacity <-
                 #test <- 
                 dt %>%
@@ -301,6 +301,7 @@ delay_cal <- function(dt,time_span,period_type){
                 #distinct(主任务ID,.keep_all=T) %>% 
                 mutate(design_delay = map2_dbl(A.方案指派日期,开始时间,design_delay_cal))
         
+        #其他项目计算原始表
         dt_others <- 
                 dt %>% 
                 dplyr::filter(是否是子任务=='N') %>%
@@ -399,7 +400,9 @@ seals_commission_cal <- function(tb_raw,ledger_raw,time_span,period_type,tag){
                 tb_raw %>% 
                 mutate(
                         任务ID=if_else(str_detect(任务ID,'ds'),str_match(标题,regex('A-FW-\\d+',ignore_case = T)),任务ID),
-                        
+                        Ag.外包成本=map2_dbl(Ag.外包成本,Ag.整体实验固定费用,function(x,y){
+                                sum(as.numeric(x),as.numeric(y),na.rm = T)
+                        }),#Ag.外包成本和Ag.整体实验固定费用都属于外包成本，仅发生过名称改变
                         link=tolower(str_replace_all(任务ID,'[ -]',''))#统一link格式
                 ) %>% 
                 dplyr::filter(任务类型=='销售序列模板') %>% 
@@ -432,10 +435,23 @@ seals_commission_cal <- function(tb_raw,ledger_raw,time_span,period_type,tag){
         #开票额统计
         invoice.dt <- 
                 dt.all %>% 
+                mutate(
+                        tag=if_else((是否作废重开票=='是'|作废=='是'|开具金额<0),1,0)
+                        ) %>% 
                 dplyr::filter(
-                        !(是否作废重开票=='是'&作废=='是'&开具金额<0),A.合同签订日期>as.Date('2020-07-31'),
+                        tag%in%c(0,NA),
+                        A.合同签订日期>as.Date('2020-06-30'),
                         time_filter(ymd(开票日期))==time_filter(time_span),
                         year(ymd(开票日期))==year(time_span)#限定统计周期所在年份
+                ) %>% 
+                mutate(
+                        开具金额=switch(
+                                一级任务类别,
+                                '预付款消费'=消费金额,
+                                '预付款消费代理'=消费金额-Ag.外包成本,
+                                '大综合'=(S.合同金额-Ag.外包成本)*回款金额/S.合同金额,
+                                '代理'=开具金额-Ag.外包成本
+                        )
                 ) %>% 
                 group_by(一级任务类别,销售类别,销售姓名,time_filter(开票日期)) %>% 
                 summarise(
@@ -447,10 +463,18 @@ seals_commission_cal <- function(tb_raw,ledger_raw,time_span,period_type,tag){
                 dplyr::filter(
                         time_filter(回款日期)==time_filter(time_span),year(ymd(回款日期))==year(time_span)
                 ) %>% 
+                mutate(
+                        回款金额=switch(
+                                一级任务类别,
+                                '预付款消费'=消费金额,
+                                '预付款消费代理'=消费金额,
+                                '大综合'=(S.合同金额-Ag.外包成本)*回款金额/S.合同金额,
+                                '代理'=开具金额-Ag.外包成本
+                        )
+                ) %>% 
                 group_by(一级任务类别,销售类别,销售姓名,time_filter(回款日期)) %>% 
                 summarise(
-                        回款金额=sum(回款金额,na.rm = T),
-                        签单金额=sum(S.合同金额,na.rm = T)
+                        回款金额=sum(回款金额,na.rm = T)
                 ) %>% 
                 drop_na(一级任务类别)
         
@@ -459,7 +483,7 @@ seals_commission_cal <- function(tb_raw,ledger_raw,time_span,period_type,tag){
         advance.dt <- 
                 dt.all %>% 
                 dplyr::filter(
-                        一级任务类别=='预付款消费',
+                        一级任务类别%in%c('预付款消费','预付款消费代理'),
                         time_filter(A.合同签订日期)==time_filter(time_span),
                         year(A.合同签订日期)==year(time_span)
                         ) %>% 

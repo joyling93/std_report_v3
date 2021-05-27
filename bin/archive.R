@@ -15,7 +15,7 @@ archive_files <- function(type,filepath,db){
                             'TB任务' = tb_db(filepath,db),
                             'TB任务2020' = tb_db2(filepath,db),
                             '实验记录（信息）表' = record_db(filepath,db),
-                            '企管统计辅助表' = supp_db(filepath,db),
+                            '成本和产值统计辅助表' = supp_db(filepath,db),
                             '台账' = ledger_db(filepath,db)
         )
         return(out_info)

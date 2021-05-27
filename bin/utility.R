@@ -1,5 +1,5 @@
 # dt <- dt2
-# time_span <- '2021-02-02'
+# time_span <- '2021-01-02'
 # period_type <- '月度'
 # tag <- '无'
 
@@ -503,54 +503,3 @@ data_extraction <-
         }
 
 
-
-# contribute_table <-
-#         tibble::tribble(
-#                 ~分子,    ~慢病毒, ~腺相关病毒,   ~腺病毒,    ~细胞,
-#                 197750L, 113604L, 44001L, 12000L, 26572L
-#         ) %>%
-#         pivot_longer(
-#                 everything(),
-#                 names_to='产值类型',
-#                 values_to='p.value'
-#         )
-
-#main
-#过滤统计周期
-# time_filter <- switch(period_type,
-#                       '周度' = function(x){
-#                               as.character(cut(x,'week',start.on.monday=F))
-#                       },
-#                       '月度' = month,
-#                       '年度' = year)
-# 
-# 
-# if(tag=='无'){
-#         dt <-
-#                 dt %>%
-#                 mutate(
-#                         #D.任务周期.工作日 = as.numeric(D.任务周期.工作日),
-#                         统计周期 = time_filter(A.合同签订日期)
-#                 ) %>%
-#                 dplyr::filter(统计周期==time_filter(time_span))
-#         
-#         db.list <- c("人工","开票额","房租水电","日常经营","材料、基因合成、测序等","预付款" )
-#         db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
-#         supp.dt <- 
-#                 map(db.list,function(dbname){
-#                         dbReadTable(db,dbname)%>%
-#                                 dplyr::filter(time_filter(ymd(日期))==time_filter(time_span)) %>% 
-#                                 select(-日期)
-#                 })
-#         dbDisconnect(db)
-#         names(supp.dt) <- db.list
-#         
-# }else if(tag=='不筛选特定时间'){
-#         dt
-#         # dt %>%
-#         # mutate(
-#         #         D.任务周期.工作日 = as.numeric(D.任务周期.工作日),
-#         # )
-# }else{
-#         dt
-# }

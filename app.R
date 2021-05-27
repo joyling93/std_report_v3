@@ -115,7 +115,7 @@ ui <- dashboardPage(
                                                 actionButton('archive_auto',label='点此开始自动归档'),
                                                 hr(),
                                                 selectInput('archieve_type','选择归档信息种类',
-                                                            c('TB任务','实验记录（信息）表','TB任务2020','企管统计辅助表','台账')),
+                                                            c('TB任务','实验记录（信息）表','TB任务2020','成本和产值统计辅助表','台账')),
                                                 fileInput('db_file',
                                                           label = '上传excel文件',
                                                           multiple = T),
@@ -143,7 +143,7 @@ ui <- dashboardPage(
                                         
                                         sidebarPanel(
                                                 selectInput('selected_db','选择统计种类',
-                                                            c('生产任务','销售任务','企管统计','实验记录表','销售提成')),
+                                                            c('生产部相关统计','销售部相关统计','成本和产值统计','实验记录表','销售提成')),
                                                 dateInput('time_span',label = '选择统计日期',value = today()),
                                                 selectInput('period_type','选择统计种类',
                                                             c('周度','月度','年度'),selected='周度'),
@@ -351,7 +351,7 @@ server <- function(input, output) {
         
         ###统计系统
         observeEvent(input$statistic,{
-                if(input$selected_db=='生产任务'){
+                if(input$selected_db=='生产部相关统计'){
                         dt <- db_clean('product_sec')
                         output_list <- delay_cal(dt,input$time_span,input$period_type)
                         
@@ -393,7 +393,7 @@ server <- function(input, output) {
                         ) 
                         
 
-                }else if(input$selected_db=='销售任务'){
+                }else if(input$selected_db=='销售部相关统计'){
                         dt <- db_clean('seal_sec')
                         output_list <- seal_cal(dt,input$time_span,input$period_type,input$tag)
                         output$DT1 <-  DT::renderDT({
@@ -413,7 +413,7 @@ server <- function(input, output) {
                         )
                         
                         
-                }else if(input$selected_db=='企管统计'){
+                }else if(input$selected_db=='成本和产值统计'){
                         dt <- db_clean('management_sec')
                         output_list <- management_data_cal(dt,input$time_span,input$period_type,input$tag)
                         output$DT1 <-  DT::renderDT({

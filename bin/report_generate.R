@@ -1,7 +1,7 @@
-# file_name <- dir('/Users/zhuomingx/Downloads/测试/','.xlsx')
-# file_path <- dir('/Users/zhuomingx/Downloads/测试/','.xlsx',full.names = T)
+# file_name <- dir('/Users/zhuomingx/Desktop/Rbio/std_report_v3/debug/','.xlsx')[1]
+# file_path <- dir('/Users/zhuomingx/Desktop/Rbio/std_report_v3/debug/','.xlsx',full.names = T)[1]
 # project1 <- '过表达'
-# project2 <- '病毒包装'
+# project2 <- '载体构建'
 
 report_generate <- function(file_name,file_path,pic_name,pic_path,project1,project2,temp_dir){
         fontname <- "Arial"
