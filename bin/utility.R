@@ -1,5 +1,5 @@
 # dt <- dt2
-# time_span <- '2021-01-02'
+# time_span <- '2021-04-02'
 # period_type <- '月度'
 # tag <- '无'
 
@@ -181,7 +181,7 @@ management_data_cal <-
                                         ) %>% 
                                         group_by(任务ID) %>% 
                                         mutate(
-                                                contract.all=S.合同金额,S.消费金额,
+                                                contract.all=S.合同金额+S.消费金额,
                                                 p.ratio=产值/sum(产值),
                                                 p.value=contract.all*p.ratio
                                         )
@@ -243,6 +243,9 @@ management_data_cal <-
                                 ##销售额和比例计算
                                 #按业务类别拆分销售额比例
                                 dt.stat2 <- dt %>% 
+                                        ungroup() %>% 
+                                        select(S.消费金额,S.合同金额,A.业务类别,任务ID) %>% 
+                                        distinct() %>% 
                                         mutate(
                                                 S.消费金额=map_int(S.消费金额,function(x){
                                                         sum(as.integer(str_split(x, ',',simplify = T)),na.rm = T)
