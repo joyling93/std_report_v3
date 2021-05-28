@@ -153,21 +153,21 @@ management_data_cal <-
                                         #         lubridate::month(A.合同签订日期)==date.input
                                         # ) %>% 
                                         group_by(任务ID,生产执行人,产值类型,产值
-                                                   ,S.合同金额,S.消费金额,A.合同签订日期,A.业务类别,标题) %>% 
+                                                   ,S.合同金额,S.消费金额,A.合同签订日期,A.业务类别,标题,S.客户单位) %>% 
                                         nest() %>% 
                                         dplyr::filter(
                                                 !str_detect(A.业务类别,'大综合|试剂|其他|生信|预付款$')#去除不纳入产值统计的项目
                                         ) %>% 
                                         mutate(
                                                 qc.tag=if_else(
-                                                        is.na(A.合同签订日期)|is.na(产值类型)|is.na(产值),#标记疑似异常项目
-                                                        'error',
+                                                        is.na(A.合同签订日期)|is.na(产值类型)|is.na(产值)|S.客户单位=='合生生物'|is.na(S.客户单位),#标记疑似异常项目和不纳入统计的项目
+                                                        'not_include',
                                                         'pass')
                                         )
                                 #异常项目
                                 error.table <- 
                                         dt.ori %>% 
-                                        dplyr::filter(qc.tag=='error')
+                                        dplyr::filter(qc.tag=='not_include')
                                 #正常纳入统计的项目
                                 dt.stat <- 
                                         dt.ori %>% 
@@ -189,12 +189,12 @@ management_data_cal <-
                                 ##按产能比例拆分销售额
                                 contribute_table <- 
                                         dt.stat %>% 
-                                        mutate(
-                                                产值类型=if_else(产值类型=='病毒',new.group,产值类型),
-                                                产值类型=fct_collapse(产值类型,
-                                                                      慢病毒=c('慢病毒','细胞检测')
-                                                )
-                                        ) %>% 
+                                        # mutate(
+                                        #         产值类型=if_else(产值类型=='病毒',new.group,产值类型),
+                                        #         产值类型=fct_collapse(产值类型,
+                                        #                               慢病毒=c('慢病毒','细胞检测','细胞系构建')
+                                        #         )
+                                        # ) %>% 
                                         group_by(产值类型) %>% 
                                         summarise(
                                                 p.value=sum(产值)
@@ -245,6 +245,7 @@ management_data_cal <-
                                 dt.stat2 <- dt %>% 
                                         ungroup() %>% 
                                         select(S.消费金额,S.合同金额,A.业务类别,任务ID) %>% 
+                                        #nest(任务ID)
                                         distinct() %>% 
                                         mutate(
                                                 S.消费金额=map_int(S.消费金额,function(x){
@@ -412,7 +413,7 @@ management_data_cal <-
                                                         成本小计/生产产值*100,
                                                         digits = 2),
                                         )
-                                list(output,summary1,summary2,summary3)
+                                list(output,summary1,summary2,summary3,error.table)
                         }
                 
                 #限制统计数据为当年
@@ -451,7 +452,7 @@ management_data_cal <-
                 enframe(dt.fin,name='统计周期') %>% 
                         mutate(
                                 tag=list(c('成本销售比和成本产值比','按部门和成本类型汇总成本',
-                                      '按业务类型汇总成本','按部门汇总成本'))
+                                      '按业务类型汇总成本','按部门汇总成本','未纳入产值统计项目'))
                         ) %>% 
                         unnest(c(value,tag)) %>% 
                         group_by(tag) %>% 
@@ -486,12 +487,13 @@ data_extraction <-
                                         paste0(str_sub(主任务ID,1,2),'-',str_extract(主任务ID,'\\d+'))
                                 )
                         ) %>% 
-                        select(CD.子任务类型,CD.子产能,CE.实验执行人姓名,主任务ID)
+                        select(CD.子任务类型,CD.子产能,CE.实验执行人姓名,主任务ID,CD.产能类型)
                 
                 dt.fin <- 
                         dt_p %>%         
                         group_by(主任务ID) %>% 
                         mutate(
+                                CD.子任务类型 = if_else(CD.子任务类型=='病毒',CD.产能类型,CD.子任务类型),#确定具体病毒子类
                                 CD.子任务类型 = if_else(CD.子任务类型=='','类型字段未填',CD.子任务类型)
                         ) %>% 
                         group_by(主任务ID,CE.实验执行人姓名,CD.子任务类型) %>% 

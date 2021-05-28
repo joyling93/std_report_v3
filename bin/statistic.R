@@ -495,7 +495,7 @@ seals_commission_cal <- function(tb_raw,ledger_raw,time_span,period_type,tag){
                                               华北大客户=c('华北大客户','杨宝兴','樊伟','贾东东'),
                                               西南大客户=c('西南大客户','张义凯'),
                                               other_level=c('销售专员')),
-                        消费金额=if_else(一级任务类别=='预付款消费代理',消费金额-Ag.外包成本,消费金额)
+                        消费金额=if_else(一级任务类别=='预付款消费代理',S.消费金额-Ag.外包成本,S.消费金额)
                 ) %>% 
                 distinct(任务ID,.keep_all=T) %>% #台账合并tb数据时会造成TB字段重复
                 group_by(一级任务类别,销售类别,销售姓名,time_filter(A.合同签订日期)) %>% 
