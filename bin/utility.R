@@ -443,9 +443,6 @@ management_data_cal <-
                                 list(output,summary1,summary2,summary3,summary4)
                         }
                 
-                #限制统计数据为当年
-                #current.year <- year(time_span)
-                
                 dt2 <-
                         #test %>% 
                         dt %>%
@@ -477,8 +474,6 @@ management_data_cal <-
                         nest()
                 dbDisconnect(db)
                 
-                # dt.fin <- 
-                # map2(unique(supp.dt$年度),unique(supp.dt$月度),index_cal)
                 dt.fin <- 
                         supp.dt %>% 
                         left_join(dt2,by=c("年度", "月份"),suffix = c(".supp", ".tb")) %>% 
