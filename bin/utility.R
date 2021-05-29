@@ -351,6 +351,29 @@ management_data_cal <-
                                                 日常经营=fee,
                                                 人工=labor
                                         )
+                                #按业务类型和成本类型汇总成本
+                                summary4 <- 
+                                        dt.all %>% 
+                                        group_by(type1,tag) %>% 
+                                        summarise(
+                                                sum=sum(value)
+                                        )%>% 
+                                        pivot_wider(
+                                                names_from = tag,
+                                                values_from = sum
+                                        ) %>% 
+                                        mutate(
+                                                小计=sum(cost,fee,labor,na.rm = T)
+                                        ) %>% 
+                                        ungroup() %>% 
+                                        mutate(
+                                                `比例%`=round(小计/sum(小计,na.rm = T)*100,digits = 2)
+                                        ) %>% 
+                                        rename(
+                                                材料=cost,
+                                                日常经营=fee,
+                                                人工=labor
+                                        )
                                 
                                 #按业务类型汇总成本
                                 summary2 <- 
@@ -417,7 +440,7 @@ management_data_cal <-
                                                         成本小计/生产产值*100,
                                                         digits = 2),
                                         )
-                                list(output,summary1,summary2,summary3)
+                                list(output,summary1,summary2,summary3,summary4)
                         }
                 
                 #限制统计数据为当年
@@ -466,7 +489,7 @@ management_data_cal <-
                         unnest() %>% 
                         mutate(
                                 tag=c('成本销售比和成本产值比','按部门和成本类型汇总成本',
-                                           '按业务类型汇总成本','按部门汇总成本')
+                                           '按业务类型汇总成本','按部门汇总成本','按业务类型和成本类型汇总成本')
                         ) %>% 
                         group_by(tag) %>% 
                         nest() %>% 
