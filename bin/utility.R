@@ -187,7 +187,7 @@ management_data_cal <-
                                 ##按产能比例拆分销售额
                                 contribute_table <- 
                                         dt %>% 
-                                        dplyr::filter(qctag!='产能计算排除') %>% 
+                                        #dplyr::filter(qctag!='产能计算排除') %>% 
                                         group_by(产值类型) %>% 
                                         summarise(
                                                 p.value=sum(产值,na.rm = T)
@@ -256,7 +256,7 @@ management_data_cal <-
                                 
                                 seals.dt <- 
                                         dt %>% 
-                                        dplyr::filter(qctag!='销售额计算排除') %>% 
+                                        #dplyr::filter(qctag!='销售额计算排除') %>% 
                                         group_by(销售业务类别) %>% 
                                         summarise(
                                                 sum=sum(销售额)
@@ -360,8 +360,12 @@ management_data_cal <-
                                                 sum=sum(value)
                                         )%>% 
                                         mutate(
-                                                ratio=sum/sum(sum)
+                                                ratio=round(sum/sum(sum)*100,digits = 2)
                                         ) 
+                                        # rename(
+                                        #         #小计='sum',
+                                        #         `比例%`=ratio
+                                        # )
                                 
                                 #按部门汇总成本
                                 summary3 <- 
@@ -375,8 +379,12 @@ management_data_cal <-
                                                 sum=sum(sum)
                                         ) %>% 
                                         mutate(
-                                                ratio=sum/sum(sum)
+                                                ratio=round(sum/sum(sum)*100,digits = 2)
                                         )
+                                        # rename(
+                                        #         #小计='sum',
+                                        #         `比例%`=ratio
+                                        # )
                                 
                                 #按业务类型汇总成本、销售额、预付款并计算成本销售比和成本产值比
                                 output <- 
@@ -386,7 +394,7 @@ management_data_cal <-
                                                 mutate(seals.dt,
                                                        tag='销售额小计'),
                                                 mutate(deposit,
-                                                       tag='预付款剩余小计'),
+                                                       tag='预付款小计'),
                                                 contribute_table %>% 
                                                         mutate(
                                                                 tag='生产产值'
@@ -403,7 +411,7 @@ management_data_cal <-
                                         # ) %>% 
                                         mutate(
                                                 `成本销售比%`=round(
-                                                        成本小计/(销售额小计+预付款剩余小计)*100,
+                                                        成本小计/(销售额小计+预付款小计)*100,
                                                         digits = 2),
                                                 `成本产值比%`=round(
                                                         成本小计/生产产值*100,
@@ -415,9 +423,10 @@ management_data_cal <-
                 #限制统计数据为当年
                 #current.year <- year(time_span)
                 
-                dt <-
+                dt2 <-
                         #test %>% 
                         dt %>%
+                        dplyr::filter(qctag=='') %>% 
                         mutate(
                                 年度 = year(A.合同签订日期),
                                 月份 = month(A.合同签订日期)
@@ -449,7 +458,7 @@ management_data_cal <-
                 # map2(unique(supp.dt$年度),unique(supp.dt$月度),index_cal)
                 dt.fin <- 
                         supp.dt %>% 
-                        left_join(dt,by=c("年度", "月份"),suffix = c(".supp", ".tb")) %>% 
+                        left_join(dt2,by=c("年度", "月份"),suffix = c(".supp", ".tb")) %>% 
                         mutate(
                                 out=map2(data.supp,data.tb,index_cal)
                         ) %>% 
@@ -518,34 +527,39 @@ data_extraction <-
                                         sum(as.integer(str_split(x, ',',simplify = T)),na.rm = T)
                                 }),#拆分逗号分隔的消费金额并计算消费总额
                                 S.合同金额=as.numeric(replace_na(S.合同金额,0)),
-                                销售额=S.消费金额+S.合同金额,
+                                销售额=S.合同金额,
                                 销售业务类别=str_replace(A.业务类别,'.* / ','')#去除业务类别的一级内容
                         ) %>% 
                         group_by(任务ID) %>% 
                         mutate(
                                 产值比例=产值/sum(产值,na.rm = T),
-                                拆分销售额=销售额*产值比例,
+                                销售额=if_else(is.na(产值比例),销售额,销售额*产值比例),
                                 销售业务类别=if_else(
                                         str_detect(销售业务类别,'分子|病毒|细胞')&!is.na(产值类型),
                                         产值类型,销售业务类别),
                                 qctag=if_else(
-                                        is.na(产值类型)|is.na(产值),
-                                         '产能计算排除',''),
-                                qctag=if_else(
-                                        S.客户单位=='合生生物'|is.na(S.客户单位)|str_detect(A.业务类别,'预付款消费'),
-                                        '销售额计算排除',qctag),
+                                        S.客户单位=='合生生物'|is.na(S.客户单位),
+                                        '统计排除项',''),
                                 销售业务类别=fct_collapse(销售业务类别,
-                                                          大综合=c('代理大综合','代理大综合')
+                                                          大综合=c('代理大综合','代理大综合'),
+                                                          细胞=c('细胞检测','细胞系构建')
                                 ),
                                 销售业务类别=fct_other(
                                         销售业务类别, 
-                                        keep=c('分子','细胞','慢病毒','腺病毒','腺相关病毒','试剂','其他','预付款','代理','生信','大综合'),
-                                        other_level = "不常见")
-                                #qctag#分子、细胞、病毒销售任务中没有分子、细胞、病毒产能的情况
+                                        keep=c('分子','慢病毒','腺病毒','腺相关病毒','细胞','试剂','其他','预付款','代理','生信','大综合'),
+                                        other_level = "类别存疑"),
+                                销售业务类别=fct_relevel(
+                                        销售业务类别,
+                                        c('分子','慢病毒','腺病毒','腺相关病毒','细胞','试剂','其他','预付款','代理','生信','大综合','类别存疑')
+                                )
+                               
                         ) %>% 
-                        select(任务ID,产值比例,拆分销售额,生产执行人
-                                 ,产值类型,产值,销售额,A.合同签订日期,销售业务类别,
-                                 S.客户单位,A.业务类别,qctag)
+                        # mutate(
+                        #         qctag=if_else(销售业务类别%in%c('分子','细胞','慢病毒','腺病毒','腺相关病毒')&销售业务类别%in%产值类型,qctag,'测试')
+                        # ) %>% 
+                        select(任务ID,产值比例,生产执行人,标题,任务类型,
+                                 产值类型,销售业务类别,A.业务类别,产值,销售额,S.合同金额,S.消费金额,A.变动金额,A.合同签订日期,
+                                 S.客户单位,S.销售姓名,qctag)
         }
 
 
