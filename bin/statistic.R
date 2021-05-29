@@ -6,7 +6,7 @@
 # save.image('debug/test/test_env.Rds')
 
 # 数据去重和日期处理
-db_clean <- function(db_type){
+db_clean <- function(db_type,tag='无'){
         db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
         dt <- dbReadTable(db,'db')
         DBI::dbDisconnect(db)
@@ -83,7 +83,13 @@ db_clean <- function(db_type){
                                 )
                                )
         }else if(db_type=='management_sec'){
-                dt2 <- data_extraction(dt)
+                if(tag=='无'){
+                        dt2 <- data_extraction(dt)
+                }else if(tag=='使用手动校正数据'){
+                        db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
+                        dt2 <- dbReadTable(db,'adjust_raw')
+                        DBI::dbDisconnect(db)
+                }
         }else if(db_type=='exp_info'){
                 db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
                 dt_info <- dbReadTable(db,'exp_info')

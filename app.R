@@ -115,7 +115,7 @@ ui <- dashboardPage(
                                                 actionButton('archive_auto',label='点此开始自动归档'),
                                                 hr(),
                                                 selectInput('archieve_type','选择归档信息种类',
-                                                            c('TB任务','实验记录（信息）表','TB任务2020','成本和产值统计辅助表','台账')),
+                                                            c('TB任务','实验记录（信息）表','TB任务2020','成本和产值统计辅助表','台账','企管校正表')),
                                                 fileInput('db_file',
                                                           label = '上传excel文件',
                                                           multiple = T),
@@ -148,7 +148,7 @@ ui <- dashboardPage(
                                                 selectInput('period_type','选择统计种类',
                                                             c('周度','月度','年度'),selected='周度'),
                                                 selectInput('tag','特殊条件',
-                                                            c('无','不筛选特定时间'),selected='无'),
+                                                            c('无','不筛选特定时间','使用手动校正数据'),selected='无'),
                                                 actionButton('statistic',label='统计'),
                                                 downloadButton('download_stat',label = '点此下载统计数据'),
                                                 hr()
@@ -414,7 +414,7 @@ server <- function(input, output) {
                         
                         
                 }else if(input$selected_db=='成本和产值统计'){
-                        dt <- db_clean('management_sec')
+                        dt <- db_clean('management_sec',input$tag)
                         output_list <- management_data_cal(dt,input$time_span,input$period_type,input$tag)
                         output$DT1 <-  DT::renderDT({
                                 #req(credentials()$user_auth)

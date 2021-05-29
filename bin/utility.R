@@ -449,7 +449,7 @@ management_data_cal <-
                 dt2 <-
                         #test %>% 
                         dt %>%
-                        dplyr::filter(qctag=='') %>% 
+                        dplyr::filter(qctag=='pass') %>% 
                         mutate(
                                 年度 = year(A.合同签订日期),
                                 月份 = month(A.合同签订日期)
@@ -562,7 +562,7 @@ data_extraction <-
                                         产值类型,销售业务类别),
                                 qctag=if_else(
                                         S.客户单位=='合生生物'|is.na(S.客户单位),
-                                        '统计排除项',''),
+                                        '统计排除项','pass'),
                                 销售业务类别=fct_collapse(销售业务类别,
                                                           大综合=c('代理大综合','代理大综合'),
                                                           细胞=c('细胞检测','细胞系构建')
