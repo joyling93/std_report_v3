@@ -6,7 +6,7 @@
 management_data_cal <- 
         function(dt,time_span,period_type,tag){
                 index_cal <- 
-                        function(x){
+                        function(data.supp,data.tb){
                                 #functions
                                 labor_cal <- 
                                         function(labor.table){
@@ -139,66 +139,61 @@ management_data_cal <-
                                 }
                                 
                                 
-                                dt <- dt %>% 
-                                        dplyr::filter(统计周期==x)
+                                dt <- data.tb
                                 
-                                supp.dt <- supp.dt %>% 
-                                        dplyr::filter(日期==x)
+                                supp.dt <- data.supp
                                 
                                 #产值和比例计算
                                 #统计字段提取和质控
-                                dt.ori <- 
-                                        dt %>% 
-                                        # dplyr::filter(
-                                        #         lubridate::month(A.合同签订日期)==date.input
-                                        # ) %>% 
-                                        group_by(任务ID,生产执行人,产值类型,产值
-                                                   ,S.合同金额,S.消费金额,A.合同签订日期,A.业务类别,标题,S.客户单位) %>% 
-                                        nest() %>% 
-                                        dplyr::filter(
-                                                !str_detect(A.业务类别,'大综合|试剂|其他|生信|预付款$')#去除不纳入产值统计的项目
-                                        ) %>% 
-                                        mutate(
-                                                qc.tag=if_else(
-                                                        is.na(A.合同签订日期)|is.na(产值类型)|is.na(产值)|S.客户单位=='合生生物'|is.na(S.客户单位),#标记疑似异常项目和不纳入统计的项目
-                                                        'not_include',
-                                                        'pass')
-                                        )
-                                #异常项目
-                                error.table <- 
-                                        dt.ori %>% 
-                                        dplyr::filter(qc.tag=='not_include')
-                                #正常纳入统计的项目
-                                dt.stat <- 
-                                        dt.ori %>% 
-                                        dplyr::filter(qc.tag=='pass') %>% 
-                                        mutate(
-                                                S.消费金额=map_int(S.消费金额,function(x){
-                                                        sum(as.integer(str_split(x, ',',simplify = T)),na.rm = T)
-                                                }),#拆分逗号分隔的消费金额并计算消费总额
-                                                S.合同金额=as.numeric(replace_na(S.合同金额,0)),
-                                                new.group=str_replace(A.业务类别,'.* / ','')#去除业务类别的一级内容
-                                        ) %>% 
-                                        group_by(任务ID) %>% 
-                                        mutate(
-                                                contract.all=S.合同金额+S.消费金额,
-                                                p.ratio=产值/sum(产值),
-                                                p.value=contract.all*p.ratio
-                                        )
+                                # dt.ori <- 
+                                #         dt %>% 
+                                #         # dplyr::filter(
+                                #         #         lubridate::month(A.合同签订日期)==date.input
+                                #         # ) %>% 
+                                #         group_by(任务ID,生产执行人,产值类型,产值
+                                #                    ,S.合同金额,S.消费金额,A.合同签订日期,A.业务类别,标题,S.客户单位) %>% 
+                                #         nest() %>% 
+                                #         dplyr::filter(
+                                #                 !str_detect(A.业务类别,'大综合|试剂|其他|生信|预付款$')#去除不纳入产值统计的项目
+                                #         ) %>% 
+                                #         mutate(
+                                #                 qc.tag=if_else(
+                                #                         is.na(A.合同签订日期)|is.na(产值类型)|is.na(产值)|S.客户单位=='合生生物'|is.na(S.客户单位),#标记疑似异常项目和不纳入统计的项目
+                                #                         'not_include',
+                                #                         'pass')
+                                #         )
+                                # #异常项目
+                                # error.table <- 
+                                #         dt.ori %>% 
+                                #         dplyr::filter(qc.tag=='not_include')
+                                # #正常纳入统计的项目
+                                # dt.stat <- 
+                                #         dt.ori %>% 
+                                #         dplyr::filter(qc.tag=='pass') %>% 
+                                #         mutate(
+                                #                 S.消费金额=map_int(S.消费金额,function(x){
+                                #                         sum(as.integer(str_split(x, ',',simplify = T)),na.rm = T)
+                                #                 }),#拆分逗号分隔的消费金额并计算消费总额
+                                #                 S.合同金额=as.numeric(replace_na(S.合同金额,0)),
+                                #                 new.group=str_replace(A.业务类别,'.* / ','')#去除业务类别的一级内容
+                                #         ) %>% 
+                                #         group_by(任务ID) %>% 
+                                #         mutate(
+                                #                 contract.all=S.合同金额+S.消费金额,
+                                #                 p.ratio=产值/sum(产值),
+                                #                 p.value=contract.all*p.ratio
+                                #         )
                                 
                                 ##按产能比例拆分销售额
                                 contribute_table <- 
-                                        dt.stat %>% 
-                                        # mutate(
-                                        #         产值类型=if_else(产值类型=='病毒',new.group,产值类型),
-                                        #         产值类型=fct_collapse(产值类型,
-                                        #                               慢病毒=c('慢病毒','细胞检测','细胞系构建')
-                                        #         )
-                                        # ) %>% 
+                                        dt %>% 
+                                        dplyr::filter(qctag!='产能计算排除') %>% 
                                         group_by(产值类型) %>% 
                                         summarise(
-                                                p.value=sum(产值)
-                                        )
+                                                p.value=sum(产值,na.rm = T)
+                                        ) %>% 
+                                        drop_na()
+                                
                                 contribute_table <- bind_rows(contribute_table,
                                                               tibble(
                                                                       产值类型=c('分子','细胞','慢病毒','腺病毒','腺相关病毒'),
@@ -242,31 +237,32 @@ management_data_cal <-
                                 
                                 ##销售额和比例计算
                                 #按业务类别拆分销售额比例
-                                dt.stat2 <- dt %>% 
-                                        ungroup() %>% 
-                                        select(S.消费金额,S.合同金额,A.业务类别,任务ID) %>% 
-                                        #nest(任务ID)
-                                        distinct() %>% 
-                                        mutate(
-                                                S.消费金额=map_int(S.消费金额,function(x){
-                                                        sum(as.integer(str_split(x, ',',simplify = T)),na.rm = T)
-                                                }),#拆分逗号分隔的消费金额并计算消费总额
-                                                S.合同金额=as.numeric(replace_na(S.合同金额,0)),
-                                                new.group=str_replace(A.业务类别,'.* / ',''),#去除业务类别的一级内容
-                                                new.group=fct_collapse(new.group,
-                                                                       细胞=c('细胞检测','细胞系构建','细胞'),
-                                                                       大综合=c('大综合','代理大综合')
-                                                )
-                                        ) 
+                                # dt.stat2 <- dt %>% 
+                                #         ungroup() %>% 
+                                #         select(S.消费金额,S.合同金额,A.业务类别,任务ID) %>% 
+                                #         #nest(任务ID)
+                                #         distinct() %>% 
+                                #         mutate(
+                                #                 S.消费金额=map_int(S.消费金额,function(x){
+                                #                         sum(as.integer(str_split(x, ',',simplify = T)),na.rm = T)
+                                #                 }),#拆分逗号分隔的消费金额并计算消费总额
+                                #                 S.合同金额=as.numeric(replace_na(S.合同金额,0)),
+                                #                 new.group=str_replace(A.业务类别,'.* / ',''),#去除业务类别的一级内容
+                                #                 new.group=fct_collapse(new.group,
+                                #                                        细胞=c('细胞检测','细胞系构建','细胞'),
+                                #                                        大综合=c('大综合','代理大综合')
+                                #                 )
+                                #         ) 
                                 
                                 seals.dt <- 
-                                        dt.stat2 %>% 
-                                        dplyr::filter(!str_detect(A.业务类别,'预付款消费')) %>% 
-                                        group_by(new.group) %>% 
+                                        dt %>% 
+                                        dplyr::filter(qctag!='销售额计算排除') %>% 
+                                        group_by(销售业务类别) %>% 
                                         summarise(
-                                                sum=sum(S.合同金额)
+                                                sum=sum(销售额)
                                         ) %>% 
-                                        rename(type1='new.group')
+                                        #drop_na() %>% 
+                                        rename(type1='销售业务类别')
                                 
                                 #无其他比例
                                 seals.ratio.not_others <- 
@@ -310,13 +306,13 @@ management_data_cal <-
                                 ##材料出库，测序，包装成本
                                 cost.export <- dplyr::filter(supp.dt$data[supp.dt$tag=='材料、基因合成、测序等'][[1]],
                                                              类型=='材料') %>% 
-                                        select(-类型)
+                                        select(-c(类型,日期))
                                 cost.seq <- dplyr::filter(supp.dt$data[supp.dt$tag=='材料、基因合成、测序等'][[1]],
                                                           类型=='基因合成+测序成本')%>% 
-                                        select(-类型)
+                                        select(-c(类型,日期))
                                 cost.pack <- dplyr::filter(supp.dt$data[supp.dt$tag=='材料、基因合成、测序等'][[1]],
                                                            类型=='干冰泡沫箱')%>% 
-                                        select(-类型)
+                                        select(-c(类型,日期))
                                 cost.all <- cost_cal(cost.export,cost.seq,cost.pack)
                                 
                                 
@@ -413,58 +409,66 @@ management_data_cal <-
                                                         成本小计/生产产值*100,
                                                         digits = 2),
                                         )
-                                list(output,summary1,summary2,summary3,error.table)
+                                list(output,summary1,summary2,summary3)
                         }
                 
                 #限制统计数据为当年
-                current.year <- year(time_span)
+                #current.year <- year(time_span)
                 
                 dt <-
+                        #test %>% 
                         dt %>%
-                        dplyr::filter(year(A.合同签订日期)==current.year) %>% 
                         mutate(
-                                统计周期 = month(A.合同签订日期)
-                        ) 
+                                年度 = year(A.合同签订日期),
+                                月份 = month(A.合同签订日期)
+                        ) %>% 
+                        group_by(年度,月份) %>% 
+                        nest()
                 
                 db.list <- c("人工","开票额","房租水电","日常经营","材料、基因合成、测序等","预付款" )
                 db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
                 supp.dt <-
                         map_dfr(db.list,function(dbname){
                                 dbReadTable(db,dbname)%>%
-                                        dplyr::filter(year(ymd(日期))==current.year) %>% 
+                                        #dplyr::filter(year(ymd(日期))==current.year) %>% 
                                         mutate(
-                                                日期 = month(ymd(日期))  
+                                                年度 = year(ymd(日期)),
+                                                月份 =  month(ymd(日期))
                                         )%>% 
-                                        group_by(日期) %>% 
+                                        group_by(年度,月份) %>% 
                                         nest() %>% 
                                         mutate(
                                                 tag=dbname
                                         )
-                        })
+                        }) %>% 
+                        group_by(年度,月份) %>% 
+                        nest()
                 dbDisconnect(db)
                 
+                # dt.fin <- 
+                # map2(unique(supp.dt$年度),unique(supp.dt$月度),index_cal)
                 dt.fin <- 
-                map(unique(supp.dt$日期),index_cal) 
-                
-                names(dt.fin) <- paste0(current.year,'-',unique(supp.dt$日期))
-                
-                dt.fin <- 
-                enframe(dt.fin,name='统计周期') %>% 
+                        supp.dt %>% 
+                        left_join(dt,by=c("年度", "月份"),suffix = c(".supp", ".tb")) %>% 
                         mutate(
-                                tag=list(c('成本销售比和成本产值比','按部门和成本类型汇总成本',
-                                      '按业务类型汇总成本','按部门汇总成本','未纳入产值统计项目'))
+                                out=map2(data.supp,data.tb,index_cal)
                         ) %>% 
-                        unnest(c(value,tag)) %>% 
+                        select(年度,月份,out) %>% 
+                        unnest() %>% 
+                        mutate(
+                                tag=c('成本销售比和成本产值比','按部门和成本类型汇总成本',
+                                           '按业务类型汇总成本','按部门汇总成本')
+                        ) %>% 
                         group_by(tag) %>% 
                         nest() %>% 
                         mutate(
-                                data2=map(data,unnest) 
-                                ) %>% 
-                        select(1,3) %>% 
+                                data=map(data,unnest)
+                        ) %>% 
                         deframe()
+                
                 dt.fin[['原始数据']] <- dt
                 
-                list(dt.fin[[1]],
+                list(dt.fin[[2]],
                      dt.fin
                      )
 }
@@ -505,6 +509,43 @@ data_extraction <-
                                 产值=CD.子产能
                         ) %>% 
                         right_join(dt_s,by=c('任务ID'))
+                
+                #qc
+                output <- 
+                dt.fin %>% 
+                        mutate(
+                                S.消费金额=map_int(S.消费金额,function(x){
+                                        sum(as.integer(str_split(x, ',',simplify = T)),na.rm = T)
+                                }),#拆分逗号分隔的消费金额并计算消费总额
+                                S.合同金额=as.numeric(replace_na(S.合同金额,0)),
+                                销售额=S.消费金额+S.合同金额,
+                                销售业务类别=str_replace(A.业务类别,'.* / ','')#去除业务类别的一级内容
+                        ) %>% 
+                        group_by(任务ID) %>% 
+                        mutate(
+                                产值比例=产值/sum(产值,na.rm = T),
+                                拆分销售额=销售额*产值比例,
+                                销售业务类别=if_else(
+                                        str_detect(销售业务类别,'分子|病毒|细胞')&!is.na(产值类型),
+                                        产值类型,销售业务类别),
+                                qctag=if_else(
+                                        is.na(产值类型)|is.na(产值),
+                                         '产能计算排除',''),
+                                qctag=if_else(
+                                        S.客户单位=='合生生物'|is.na(S.客户单位)|str_detect(A.业务类别,'预付款消费'),
+                                        '销售额计算排除',qctag),
+                                销售业务类别=fct_collapse(销售业务类别,
+                                                          大综合=c('代理大综合','代理大综合')
+                                ),
+                                销售业务类别=fct_other(
+                                        销售业务类别, 
+                                        keep=c('分子','细胞','慢病毒','腺病毒','腺相关病毒','试剂','其他','预付款','代理','生信','大综合'),
+                                        other_level = "不常见")
+                                #qctag#分子、细胞、病毒销售任务中没有分子、细胞、病毒产能的情况
+                        ) %>% 
+                        select(任务ID,产值比例,拆分销售额,生产执行人
+                                 ,产值类型,产值,销售额,A.合同签订日期,销售业务类别,
+                                 S.客户单位,A.业务类别,qctag)
         }
 
 
