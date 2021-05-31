@@ -298,6 +298,10 @@ management_data_cal <-
                                 #按业务类型和成本类型汇总成本
                                 summary4 <- 
                                         dt.all %>% 
+                                        ungroup() %>% 
+                                        mutate(
+                                                 tag=if_else(subtype=='房租等固定成本','房租等固定成本',tag)
+                                         ) %>% 
                                         group_by(type1,tag) %>% 
                                         summarise(
                                                 sum=sum(value)
