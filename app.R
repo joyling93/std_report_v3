@@ -143,7 +143,7 @@ ui <- dashboardPage(
                                         
                                         sidebarPanel(
                                                 selectInput('selected_db','选择统计种类',
-                                                            c('生产部相关统计','销售部相关统计','成本和产值统计','实验记录表','销售提成')),
+                                                            c('生产部相关统计','销售部相关统计','成本和产值统计','实验记录表','销售提成','项目管理数据')),
                                                 dateInput('time_span',label = '选择统计日期',value = today()),
                                                 selectInput('period_type','选择统计种类',
                                                             c('周度','月度','年度'),selected='周度'),
@@ -451,8 +451,8 @@ server <- function(input, output) {
                                 }
                         )
                 }else if(input$selected_db=='销售提成'){
-                        dt.list <- db_clean('sales_commission_cal')
-                        output_list <- seals_commission_cal(dt.list[[1]],dt.list[[2]],input$time_span,input$period_type,input$tag)
+                        dt.all <- db_clean('sales_commission_cal')
+                        output_list <- seals_commission_cal(dt.all,input$time_span,input$period_type,input$tag)
                         
                         output$DT1 <-  DT::renderDT({
                                 #req(credentials()$user_auth)
@@ -470,6 +470,25 @@ server <- function(input, output) {
                                 }
                         )
                         
+                }else if(input$selected_db=='项目管理数据'){
+                        dt.all <- db_clean('admin_data_cal')
+                        output_list <- admin_data_cal(dt.all,input$time_span,input$period_type,input$tag)
+                        
+                        output$DT1 <-  DT::renderDT({
+                                #req(credentials()$user_auth)
+                                output_list[[1]]
+                        },
+                        extensions = c('Buttons','Responsive','KeyTable'),
+                        options = DT_options_list)
+                        
+                        output$download_stat <- downloadHandler(
+                                filename=function(){
+                                        y <- paste0('统计数据.xlsx')
+                                },
+                                content=function(file){
+                                        write.xlsx(output_list, file)
+                                }
+                        )
                 }else{
                         dt <- db_clean('record_db')
                 }
