@@ -485,9 +485,9 @@ data_extraction <-
                                 mutate(
                                         项目延期=if_else(延期计算方式==1,截止时间<=today(),Su.实验实际完成日期>截止时间),
                                         一级任务类别=if_else(一级任务类别=='预付款消费'&二级任务类别=='代理','预付款消费代理',一级任务类别),#将二级任务为代理的预付款消费任务改为’预付款消费代理‘
-                                        across(matches('成本|金额'),as.numeric),
                                         S.消费金额=map_int(S.消费金额,function(x){
-                                                sum(as.integer(str_split(x, ',',simplify = T)),na.rm = T)})
+                                                sum(as.integer(str_split(x, '[,，]',simplify = T)),na.rm = T)}),
+                                        across(matches('成本|金额'),as.numeric)
                                 ) %>% 
                                 select(标题,任务ID,A.合同签订日期,Ag.外包成本,S.销售姓名,一级任务类别,二级任务类别,
                                          S.客户姓名,S.合同金额,S.消费金额,F.未回款,F.已开票,截止时间,Su.实验实际完成日期,项目延期,link)
