@@ -1,5 +1,5 @@
 # period_type <- '月度'
-# time_span <- today()-ddays(30)
+# time_span <- 2021-05-07
 # db_type <- 'product_sec'
 # DBI::dbDisconnect(db)
 # load('debug/test/test_env.Rds')
@@ -485,7 +485,9 @@ data_extraction <-
                                 mutate(
                                         项目延期=if_else(延期计算方式==1,截止时间<=today(),Su.实验实际完成日期>截止时间),
                                         一级任务类别=if_else(一级任务类别=='预付款消费'&二级任务类别=='代理','预付款消费代理',一级任务类别),#将二级任务为代理的预付款消费任务改为’预付款消费代理‘
-                                        across(matches('成本|金额'),as.numeric)
+                                        across(matches('成本|金额'),as.numeric),
+                                        S.消费金额=map_int(S.消费金额,function(x){
+                                                sum(as.integer(str_split(x, ',',simplify = T)),na.rm = T)})
                                 ) %>% 
                                 select(标题,任务ID,A.合同签订日期,Ag.外包成本,S.销售姓名,一级任务类别,二级任务类别,
                                          S.客户姓名,S.合同金额,S.消费金额,F.未回款,F.已开票,截止时间,Su.实验实际完成日期,项目延期,link)
@@ -1052,26 +1054,27 @@ seals_commission_cal <- function(dt.all,time_span,period_type,tag){
                 )
         
         
-        dt.fin <- purrr::reduce(list(invoice.dt,payment.dt,advance.dt),full_join) %>% 
+        dt1 <- purrr::reduce(list(invoice.dt,payment.dt,advance.dt),full_join,by = c("一级任务类别", "销售类别", "销售姓名") )%>% 
                 group_by(一级任务类别, 销售类别, 销售姓名) %>% 
                 summarise(
                         开具金额=sum(开具金额,na.rm = T),
+                        代理成本.开具=sum(代理成本.x,na.rm = T),
                         回款金额=sum(回款金额,na.rm = T),
+                        代理成本.回款=sum(代理成本.y,na.rm = T),
                         消费金额=sum(消费金额,na.rm = T),
-                        代理成本=sum(代理成本,na.rm = T),
-                        回款金额=sum(回款金额,na.rm = T)
+                        代理成本=sum(代理成本,na.rm = T)
                 ) %>% 
                 mutate(
                         #across(matches('金额|成本'),replace_na,replace=0),
-                        开票提成=pmap(list(销售类别,一级任务类别,开具金额,消费金额),
-                                  function(销售类别,一级任务类别,开具金额,消费金额){
+                        开票提成=pmap(list(销售类别,一级任务类别,开具金额,消费金额,代理成本),
+                                  function(销售类别,一级任务类别,开具金额,消费金额,代理成本){
                                           p <- 0
                                           if(销售类别=='销售专员'|str_detect(销售类别,'大客户')){
                                                   p <- switch(一级任务类别,
                                                                     '常规业务'= 开具金额*0.03,
                                                                     '预付款'= 开具金额*0,
                                                                     '预付款消费' = 消费金额*0.04,
-                                                                    '预付款消费代理'=消费金额*1.8*0.04,
+                                                                    '预付款消费代理'=(消费金额-代理成本)*1.8*0.04,
                                                                     '代理'=开具金额*1.8*0.03,
                                                                     '其他'=开具金额*0,
                                                                     '大综合'=开具金额*1.8*0.06
@@ -1081,13 +1084,11 @@ seals_commission_cal <- function(dt.all,time_span,period_type,tag){
                                                                     '常规业务'= 开具金额*0.02,
                                                                     '预付款'= 开具金额*0,
                                                                     '预付款消费' = 消费金额*0.03,
-                                                                    '预付款消费代理'=消费金额*1.8*0.02,
+                                                                    '预付款消费代理'=(消费金额-代理成本)*1.8*0.04,
                                                                     '代理'=开具金额*1.8*0.02,
                                                                     '其他'=开具金额*0,
                                                                     '大综合'=开具金额*1.8*0.04
                                                   )
-                                          }else{#各种大客户
-                                                  p <- 开具金额
                                           }
                                           p
                                   }),
@@ -1100,7 +1101,7 @@ seals_commission_cal <- function(dt.all,time_span,period_type,tag){
                                                                     预付款=回款金额*0.03,
                                                                     预付款消费=消费金额*0,
                                                                     大综合=回款金额*1.8*0.06,
-                                                                    预付款消费代理=消费金额*0,
+                                                                    预付款消费代理=回款金额*0,
                                                                     代理=回款金额*1.8*0.03,
                                                                     其他=回款金额*0)
                                           }else if(销售类别=='刘艳'){
@@ -1109,15 +1110,43 @@ seals_commission_cal <- function(dt.all,time_span,period_type,tag){
                                                                     预付款=回款金额*0.02,
                                                                     预付款消费=消费金额*0,
                                                                     大综合=回款金额*1.8*0.04,
-                                                                    预付款消费代理=消费金额*0,
+                                                                    预付款消费代理=回款金额*0,
                                                                     代理=回款金额*1.8*0.02,
                                                                     其他=回款金额*0)
-                                          }else{
-                                                  p <- 回款金额
                                           }
                                           p
                                   })
                 )
+        
+        #单独计算梁敏提成
+        dt2 <- 
+        dt1 %>% 
+                group_by(一级任务类别) %>% 
+                summarise(
+                        开具金额=sum(开具金额,na.rm = T),
+                        消费金额=sum(消费金额,na.rm = T),
+                        代理成本=sum(代理成本,na.rm = T)
+                ) %>% 
+                mutate(
+                        开票提成=pmap(list(一级任务类别,开具金额,消费金额,代理成本),
+                                  function(一级任务类别,开具金额,消费金额,代理成本){
+                                          switch(
+                                                  一级任务类别,
+                                                        常规业务=开具金额*0.01,
+                                                        预付款消费=消费金额*0.01,
+                                                        代理=开具金额*1.8*0.01,
+                                                        预付款消费代理=(消费金额-代理成本)*1.8*0.01,
+                                                        预付款=0,
+                                                        其他=0,
+                                                        大综合=0)
+                                  }
+                        ),
+                        销售姓名='梁敏'
+                ) 
+        
+        dt.fin <- 
+                bind_rows(dt1,dt2)
+        
         
         output <- 
                 list(

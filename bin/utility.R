@@ -14,8 +14,17 @@ function(dt.all,time_span,period_type,tag){
         
         dt <- 
                 dt.all %>% 
+                dplyr::filter(!is.na(合同号)) %>% 
+                mutate(
+                        销售业务类别=if_else(一级任务类别%in%c('常规业务','预付款消费'),二级任务类别,一级任务类别)
+                ) %>% 
                 select("合同号",'S.销售姓名','A.合同签订日期','S.合同金额','S.消费金额',
-                       '开票日期','开具金额','回款日期','回款金额','二级任务类别','项目延期'
+                       '开票日期','开具金额','回款日期','回款金额',销售业务类别,'项目延期',未开票金额,
+                       未回款金额,合同总额
+                ) %>% 
+                group_by(合同号) %>% 
+                mutate(
+                        开票次数=n()
                 )
         
         dt2 <- 
@@ -23,7 +32,7 @@ function(dt.all,time_span,period_type,tag){
                         year(as.Date(A.合同签订日期))==year(time_span),
                         time_filter(as.Date(A.合同签订日期))==time_filter(time_span)
                 ) %>%
-                group_by(S.销售姓名,二级任务类别,time_filter(as.Date(A.合同签订日期))) %>% 
+                group_by(S.销售姓名,销售业务类别,time_filter(as.Date(A.合同签订日期))) %>% 
                 summarise(
                         合同总数=n(),
                         合同金额=sum(S.合同金额,na.rm = T),
@@ -32,7 +41,7 @@ function(dt.all,time_span,period_type,tag){
                 ) 
         
         output.list <- list(
-                '项目管理统计'=dt2,
+                '销售任务延期'=dt2,
                 '项目管理原始数据'=dt
         )
                 
