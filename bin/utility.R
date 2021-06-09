@@ -1,5 +1,5 @@
 # dt.all <- dt2
-# time_span <- '2021-05-02'
+# time_span <- '2021-04-02'
 # period_type <- '月度'
 # tag <- '无'
 admin_data_cal <- 
@@ -24,26 +24,70 @@ function(dt.all,time_span,period_type,tag){
                 ) %>% 
                 group_by(合同号) %>% 
                 mutate(
-                        开票次数=n()
+                        开票次数=n(),
+                        去重合同金额=S.合同金额/n()
                 )
+        
         
         dt2 <- 
         dt %>% dplyr::filter(
                         year(as.Date(A.合同签订日期))==year(time_span),
                         time_filter(as.Date(A.合同签订日期))==time_filter(time_span)
                 ) %>%
+                group_by(合同号) %>% 
+                mutate(
+                        延期数= 项目延期/n()
+                ) %>% 
                 group_by(S.销售姓名,销售业务类别,time_filter(as.Date(A.合同签订日期))) %>% 
                 summarise(
                         合同总数=n(),
                         合同金额=sum(S.合同金额,na.rm = T),
                         消费金额=sum(S.消费金额,na.rm = T),
-                        延期数=sum(项目延期,na.rm = T)
-                ) 
+                        延期数=floor(sum(延期数,na.rm = T))
+                )
         
-        output.list <- list(
+        summary_dt <- 
+                function(x,y){
+                        dt %>% 
+                                select(.data[[x]],.data[[y]]) %>% 
+                                mutate(
+                                        年度=year(.data[[x]]),
+                                        季度=quarter(.data[[x]]),
+                                        月度=month(.data[[x]]),
+                                ) %>% 
+                                group_by(年度,季度,月度) %>% 
+                                summarise(
+                                        金额总计=sum(.data[[y]],na.rm = T)
+                                ) %>% 
+                                ungroup() %>% 
+                                slice_max(年度,n=25) %>% #提取最近三年至少25个月份的数据
+                                group_by(年度) %>% 
+                                mutate(
+                                        `环比增长%`=(金额总计-dplyr::lag(金额总计,order_by =月度,n=1))
+                                        /dplyr::lag(金额总计,order_by =月度,n=1)*100
+                                ) %>% 
+                                group_by(月度) %>% 
+                                mutate(
+                                        
+                                        `同比增长%`=(金额总计-dplyr::lag(金额总计,order_by =年度,n=1))
+                                        /dplyr::lag(金额总计,order_by =年度,n=1)*100
+                                ) 
+                }
+        
+        summary.list <- tibble(
+                统计周期=c('A.合同签订日期','开票日期','回款日期'),
+                统计金额=c('去重合同金额','开具金额','回款金额')
+        ) %>% 
+                mutate(
+                        data=map2(统计周期,统计金额,summary_dt)
+                ) %>% 
+                select(2,3) %>% 
+                deframe()
+        
+        output.list <- append(list(
                 '销售任务延期'=dt2,
-                '项目管理原始数据'=dt
-        )
+                '项目管理原始数据'=dt),
+                summary.list)
                 
 }
 

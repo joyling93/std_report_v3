@@ -510,9 +510,9 @@ data_extraction <-
                                         across(ends_with('金额'),replace_na,0),
                                         未开票金额=S.合同金额-开具金额,
                                         未回款金额=S.合同金额-回款金额,
-                                        合同总额=S.合同金额+S.消费金额
-                                ) %>% 
-                                drop_na(A.合同签订日期)#去除与签订合同无关的项目(如售后任务)
+                                        合同总额=S.合同金额+S.消费金额,
+                                        质控标记=if_else(is.na(A.合同签订日期),'没有合同签订日期','pass')
+                                ) 
                 }
                 
         }
@@ -981,6 +981,8 @@ seals_commission_cal <- function(dt.all,time_span,period_type,tag){
                               '月度' = month,
                               '年度' = year)
         
+        dt.all <- dt.all %>% 
+                dplyr::filter(质控标记=='pass')
         #开票额统计
         invoice.dt <- 
                 dt.all %>% 
