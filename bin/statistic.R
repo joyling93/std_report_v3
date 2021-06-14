@@ -981,11 +981,11 @@ seals_commission_cal <- function(dt.all,time_span,period_type,tag){
                               '月度' = month,
                               '年度' = year)
         
-        dt.all <- dt.all %>% 
+        dt <- dt.all %>% 
                 dplyr::filter(质控标记=='pass')
         #开票额统计
         invoice.dt <- 
-                dt.all %>% 
+                dt %>% 
                 mutate(
                         tag=if_else((是否作废重开票=='是'|作废=='是'|开具金额<0),1,0)
                 ) %>% 
@@ -1011,7 +1011,7 @@ seals_commission_cal <- function(dt.all,time_span,period_type,tag){
         
         #回款额统计
         payment.dt <- 
-                dt.all %>% 
+                dt %>% 
                 dplyr::filter(
                         time_filter(回款日期)==time_filter(time_span),year(ymd(回款日期))==year(time_span)
                 ) %>% 
@@ -1032,7 +1032,7 @@ seals_commission_cal <- function(dt.all,time_span,period_type,tag){
         #预付款额统计
         ##预付款消费信息以tb字段为准，须以S.销售姓名修改销售姓名和销售类别
         advance.dt <- 
-                dt.all %>% 
+                dt %>% 
                 dplyr::filter(
                         一级任务类别%in%c('预付款消费','预付款消费代理'),
                         time_filter(A.合同签订日期)==time_filter(time_span),

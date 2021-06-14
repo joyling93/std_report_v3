@@ -1,6 +1,6 @@
 
 # filename <- dir('/Users/zhuomingx/Desktop/Rbio/std_report_v3/debug/test/信息表归档测试','.xlsx')
-# filepath <- dir('/Users/zhuomingx/Desktop/Rbio/std_report_v3/debug/test/信息表归档测试','.xlsx',full.names = T)
+# filepath <- dir('/Users/zhuomingx/Downloads/info_table_test','.xlsx',full.names = T)
 # archive_files(
 #         filepath=filepath,
 #         filename=filename,
@@ -151,9 +151,15 @@ function(filepath,db){
                 }
                 dt
         })
+        colnames(dt_new) <- str_replace_all(colnames(dt_new),'[:punct:]','.')
         
         db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
         dt_db <- dbReadTable(db,'exp_info')
+        
+        dt_new <- 
+                dt_new %>% 
+                select(any_of(colnames(dt_db)))
+        
         dt_fin <-
         bind_rows(dt_new,dt_db) %>%
                 arrange(desc(import.time)) %>%
