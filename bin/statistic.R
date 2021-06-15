@@ -511,7 +511,8 @@ data_extraction <-
                                         未开票金额=S.合同金额-开具金额,
                                         未回款金额=S.合同金额-回款金额,
                                         合同总额=S.合同金额+S.消费金额,
-                                        质控标记=if_else(is.na(A.合同签订日期),'没有合同签订日期','pass')
+                                        质控标记=if_else(is.na(A.合同签订日期),'没有合同签订日期','pass'),
+                                        质控标记=if_else(is.na(一级任务类别),'没有填写业务类别',质控标记)
                                 ) 
                 }
                 
@@ -982,7 +983,7 @@ seals_commission_cal <- function(dt.all,time_span,period_type,tag){
                               '年度' = year)
         
         dt <- dt.all %>% 
-                dplyr::filter(质控标记=='pass')
+                dplyr::filter(质控标记!='没有合同签订日期')
         #开票额统计
         invoice.dt <- 
                 dt %>% 
