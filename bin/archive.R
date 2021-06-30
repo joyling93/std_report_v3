@@ -163,7 +163,7 @@ function(filepath,db){
         dt_fin <-
         bind_rows(dt_new,dt_db) %>%
                 arrange(desc(import.time)) %>%
-                dplyr::filter(!duplicated(生产主任务标题))
+                dplyr::filter(!duplicated(paste0(生产主任务标题,载体)))
         
         
         dbWriteTable(db,'exp_info',dt_fin,overwrite=T)
