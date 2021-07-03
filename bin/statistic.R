@@ -34,7 +34,7 @@ db_clean <- function(db_type,tag='无'){
                                                 ,paste0(str_sub(主任务ID,1,2),'-',str_extract(主任务ID,'\\d+')))
                                   ) %>% 
                         left_join(dt_extra) %>% 
-                        mutate(across(matches('时间|日期'),~ymd_hms(.x)),
+                        mutate(across(matches('时间|日期'),~ymd_hms(.x,tz='Asia/Shanghai')),
                                across(contains('姓名'),as.factor),
                                #across(ends_with('产能'),as.numeric),
                                across(contains('周期'),as.numeric)
@@ -153,12 +153,26 @@ db_clean <- function(db_type,tag='无'){
         return(dt2)
 }
 
+#2021调休表
+special_days <- list(
+        'holidays'=ymd(
+                c("2021年1月1日", "2021年1月2日", "2021年1月3日", "2021年2月11日", "2021年2月12日", "2021年2月13日", "2021年2月14日", "2021年2月15日", "2021年2月16日", "2021年2月17日", "2021年4月3日", "2021年4月4日", "2021年4月5日", "2021年5月1日", "2021年5月2日", "2021年5月3日", "2021年5月4日", "2021年5月5日", "2021年6月12日", "2021年6月13日", "2021年6月14日", "2021年9月19日", "2021年9月20日", "2021年9月21日", "2021年10月1日", "2021年10月2日", "2021年10月3日", "2021年10月4日", "2021年10月5日", "2021年10月6日", "2021年10月7日")
+        ),#法定假日
+        'switch.days'=ymd(
+                c("2021年2月7日", "2021年2月20日", "2021年4月25日", "2021年5月8日", "2021年9月18日", "2021年9月26日", "2021年10月9日")
+        )#工作日调休
+)
 
-# 计算开始日期x到结束日期经历的工作日
+# 计算开始日期x到结束日期y经历的工作日
 workday_cal <- function(x,y){
         x <- as.Date(x)
         y <- as.Date(y)
-        sum(wday(x+days(1:ceiling((y-x)/ddays(1))))%in%c(2:6))
+        period <- x+days(1:ceiling((y-x)/ddays(1)))
+        offset1 <- sum(
+                period%in%special_days[['holidays']][wday(special_days[['holidays']])%in%c(2:6)]
+        )
+        offset2 <- sum(period%in%special_days[['switch.days']])
+        sum(wday(period)%in%c(2:6))-offset1+offset2
 }
 
 design_delay_cal <- function(x,y){
@@ -168,14 +182,7 @@ design_delay_cal <- function(x,y){
                 return(0)
         }else{
                 #判定非工作日间隔,包括第一天
-                special_days <- list(
-                        'holidays'=ymd(
-                                c("2021年1月1日", "2021年1月2日", "2021年1月3日", "2021年2月11日", "2021年2月12日", "2021年2月13日", "2021年2月14日", "2021年2月15日", "2021年2月16日", "2021年2月17日", "2021年4月3日", "2021年4月4日", "2021年4月5日", "2021年5月1日", "2021年5月2日", "2021年5月3日", "2021年5月4日", "2021年5月5日", "2021年6月12日", "2021年6月13日", "2021年6月14日", "2021年9月19日", "2021年9月20日", "2021年9月21日", "2021年10月1日", "2021年10月2日", "2021年10月3日", "2021年10月4日", "2021年10月5日", "2021年10月6日", "2021年10月7日")
-                                ),#法定假日
-                        'switch.days'=ymd(
-                                c("2021年2月7日", "2021年2月20日", "2021年4月25日", "2021年5月8日", "2021年9月18日", "2021年9月26日", "2021年10月9日")
-                        )#工作日调休
-                )
+                
                 int.days <- x+days(0:ceiling((y-x)/ddays(1)))
                 offset1 <- sum(
                         int.days%in%special_days[['holidays']][wday(special_days[['holidays']])%in%c(2:6)]
