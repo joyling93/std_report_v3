@@ -33,8 +33,8 @@ library(tibble)
 temp_dir <- tempdir()
 
 user_base <- data.frame(
-        user = c("user1", "user2"),
-        password = c("pass1", "pass2"), 
+        user = c("syngen", "user2"),
+        password = c("20210704", "pass2"), 
         permissions = c("admin", "standard"),
         name = c("User One", "User Two"),
         stringsAsFactors = FALSE,

@@ -1,5 +1,5 @@
 # period_type <- '月度'
-# time_span <- 2021-05-07
+# time_span <- '2021-03-07 18:00:00 CST'
 # db_type <- 'product_sec'
 # DBI::dbDisconnect(db)
 # load('debug/test/test_env.Rds')
@@ -229,8 +229,8 @@ delay_cal <- function(dt,time_span,period_type){
                                              ,1,0),#标记在计算延期时需要去除的项
                         distribution_delay = if_else((开始时间-Su.实验实际开始日期)/ddays(1)>1,1,0),
                         CD.组成产能 = as.character(CD.组成产能),
-                        CD.产能类型 = strsplit(CD.产能类型,split="[|,，]"),
-                        CD.组成产能 = strsplit(CD.组成产能,split="[|,，]"),
+                        CD.产能类型 = strsplit(CD.产能类型,split="[|,，/]"),
+                        CD.组成产能 = strsplit(CD.组成产能,split="[|,，/]")
                 ) 
                 
         
