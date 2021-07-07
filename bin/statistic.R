@@ -1,5 +1,5 @@
 # period_type <- '月度'
-# time_span <- '2021-03-07 18:00:00 CST'
+# time_span <- '2021-06-07 18:00:00 CST'
 # db_type <- 'product_sec'
 # DBI::dbDisconnect(db)
 # load('debug/test/test_env.Rds')
@@ -521,7 +521,8 @@ data_extraction <-
                                         未回款金额=S.合同金额-回款金额,
                                         合同总额=S.合同金额+S.消费金额,
                                         质控标记=if_else(is.na(A.合同签订日期),'没有合同签订日期','pass'),
-                                        质控标记=if_else(is.na(一级任务类别),'没有填写业务类别',质控标记)
+                                        质控标记=if_else(is.na(一级任务类别),'没有填写业务类别',质控标记),
+                                        质控标记=if_else(is.na(销售姓名),'没有填写销售姓名',质控标记)
                                 ) 
                 }
                 
@@ -992,7 +993,7 @@ seals_commission_cal <- function(dt.all,time_span,period_type,tag){
                               '年度' = year)
         
         dt <- dt.all %>% 
-                dplyr::filter(质控标记!='没有合同签订日期')
+                dplyr::filter(质控标记=='pass')
         #开票额统计
         invoice.dt <- 
                 dt %>% 
