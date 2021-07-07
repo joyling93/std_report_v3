@@ -993,7 +993,7 @@ seals_commission_cal <- function(dt.all,time_span,period_type,tag){
                               '年度' = year)
         
         dt <- dt.all %>% 
-                dplyr::filter(质控标记=='pass')
+                dplyr::filter(质控标记!='没有合同签订日期')
         #开票额统计
         invoice.dt <- 
                 dt %>% 
