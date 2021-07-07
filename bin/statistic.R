@@ -503,6 +503,8 @@ data_extraction <-
                         dt.all <- 
                                 ledger_raw %>% 
                                 mutate(
+                                        合同号=if_else(is.na(合同号),'合同号未填',合同号),
+                                        销售姓名=if_else(is.na(销售姓名),'销售姓名未填',销售姓名),
                                         link=tolower(str_replace_all(合同号,'[ -]',''))
                                 ) %>% 
                                 full_join(tb.data) %>% 
