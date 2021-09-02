@@ -99,10 +99,10 @@ db_clean <- function(db_type,tag='无'){
                                 #across(contains('姓名'),as.factor),
                                 across(ends_with('产能'),as.numeric),
                                 across(contains('周期'),as.numeric),
-                                # 是否重复=if_else(
-                                #         任务ID%in%任务ID[duplicated(任务ID)]
-                                #         ,'重复','未重复'
-                                # )
+                                是否重复=if_else(
+                                        任务ID%in%任务ID[duplicated(任务ID)]
+                                        ,'重复','未重复'
+                                )
                                )
         }else if(db_type=='management_sec'){
                 if(tag=='无'){
