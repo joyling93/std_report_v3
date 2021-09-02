@@ -56,7 +56,29 @@ db_clean <- function(db_type,tag='无'){
                         select(
                                 主任务ID,CE.实验执行人姓名,CD.子任务类型,CD.子产能,Su.实验实际开始日期,
                                 Su.实验实际完成日期,延期原因
-                                  ) %>% 
+                                  ) 
+                #按最长子任务类型补齐，防止unest不平衡
+                balance_dt <- dt_extra %>% 
+                        group_by(主任务ID,CD.子任务类型) %>% 
+                        mutate(
+                                n1=n()
+                        ) %>% 
+                        group_by(主任务ID) %>% 
+                        mutate(
+                                n2=max(n1)-n1
+                        ) %>% 
+                        group_by(主任务ID,CD.子任务类型,n2) %>% 
+                        nest() %>% 
+                        dplyr::filter(n2>0) %>% 
+                        purrr::pmap(function(主任务ID,CD.子任务类型,n2,data){
+                                tibble(
+                                        '主任务ID'=主任务ID,
+                                        'CD.子任务类型'=rep(CD.子任务类型,n2)
+                                )   
+                        }) %>% bind_rows() 
+                
+                dt_extra <- 
+                bind_rows(dt_extra,balance_dt)%>% 
                         pivot_wider(names_from = CD.子任务类型,
                                     values_from=c(CD.子产能,Su.实验实际开始日期,CE.实验执行人姓名,
                                                   Su.实验实际完成日期,延期原因),
@@ -77,10 +99,10 @@ db_clean <- function(db_type,tag='无'){
                                 #across(contains('姓名'),as.factor),
                                 across(ends_with('产能'),as.numeric),
                                 across(contains('周期'),as.numeric),
-                                是否重复=if_else(
-                                        任务ID%in%任务ID[duplicated(任务ID)]
-                                        ,'重复','未重复'
-                                )
+                                # 是否重复=if_else(
+                                #         任务ID%in%任务ID[duplicated(任务ID)]
+                                #         ,'重复','未重复'
+                                # )
                                )
         }else if(db_type=='management_sec'){
                 if(tag=='无'){
