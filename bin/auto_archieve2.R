@@ -98,8 +98,9 @@ auto_archieve2 <- function(){
         
         #构造虚拟一级任务
         dt_sale <- dt_new %>% 
-                select(!contains(c('分子','病毒','细胞')),
-                       -c(S.客户姓名,S.客户单位,S.是否新增客户,S.销售姓名,S.销售区域)) %>%
+                dplyr::select(!contains(c('分子','病毒','细胞')))%>%
+                #dplyr::select(!contains(c('分子','病毒','细胞')),
+                #       -c(S.客户姓名,S.客户单位,S.是否新增客户,S.销售姓名,S.销售区域)) %>%
                 #drop_na() %>% 
                 rename(S.合同金额 = b4合同金额,
                        S.消费金额 = b4消费金额,
