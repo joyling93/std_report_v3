@@ -120,7 +120,92 @@ enframe(supp.dt) %>%
         })
 dbDisconnect(db)
 
+
+
 cf_new <- 
+tibble::tribble(
+        ~customfildID,         ~name,
+        "601cc7102745a7c6e1648aac",      "b4消费金额",
+        "601cc7102745a7c6e1648abb",      "d5分子开始",
+        "601cc7102745a7c6e1648abc",      "d5分子截止",
+        "601cc7102745a7c6e1648abd",      "d5分子产能",
+        "601cc7102745a7c6e1648abe",      "d5病毒开始",
+        "601cc7102745a7c6e1648abf",      "d5病毒截止",
+        "601cc7102745a7c6e1648ac0",      "d5病毒产能",
+        "601cc7102745a7c6e1648ac1",      "d5细胞开始",
+        "601cc7102745a7c6e1648ac2",      "d5细胞截止",
+        "601cc7102745a7c6e1648ac3",      "d5细胞产能",
+        "601cc7102745a7c6e1648ac4",       "d5总开始",
+        "601cc7102745a7c6e1648acb",      "b4合同金额",
+        "601cc7102745a7c6e1648acc",      "g5分子完成",
+        "601cc7102745a7c6e1648acd",      "g5分子姓名",
+        "601cc7102745a7c6e1648ace",      "g5病毒完成",
+        "601cc7102745a7c6e1648acf",      "g5病毒姓名",
+        "601cc7102745a7c6e1648ad0",      "g5细胞完成",
+        "601cc7102745a7c6e1648ad1",      "g5细胞姓名",
+        "601cc7102745a7c6e1648bcb",      "方案设计延期",
+        "601cc7102745a7c6e1648bd0",       "方案设计者",
+        "601cc91d2daa3dd3bdb40064",      "S.合同金额",
+        "6041950b02a7659ab67d8ab1",      "S.消费金额",
+        "601cc91d2daa3dd3bdb40067",      "S.客户姓名",
+        "601cc91d2daa3dd3bdb40068",      "S.客户单位",
+        "601cc91d2daa3dd3bdb40069",      "S.销售姓名",
+        "601cc91d2daa3dd3bdb4006a",    "S.是否新增客户",
+        "601cc91d2daa3dd3bdb4006b",      "S.销售区域",
+        "601cc91d2daa3dd3bdb4006c",    "A.合同签订日期",
+        "601cc91d2daa3dd3bdb4006d",     "A.方案设计者",
+        "601cc91d2daa3dd3bdb4006e",    "A.方案指派日期",
+        "601cc91d2daa3dd3bdb40073",    "A.方案设计延期",
+        "601cc91d2daa3dd3bdb40076",    "CD.子任务类型",
+        "601cc91d2daa3dd3bdb40078",      "CD.子产能",
+        "601cc91d2daa3dd3bdb40079",     "CD.产能类型",
+        "601cc91d2daa3dd3bdb4007a",     "CD.组成产能",
+        "601cc91d2daa3dd3bdb4007b",  "CE.实验执行人姓名",
+        "601cc91d2daa3dd3bdb40081",     "CW.入库日期",
+        "601cc91d2daa3dd3bdb40082",  "P.结题报告是否规范",
+        "601cc91d2daa3dd3bdb40086", "Su.实验实际开始日期",
+        "601cc91d2daa3dd3bdb40087", "Su.实验实际完成日期",
+        "601cc91d2daa3dd3bdb40088",  "Su.实验分配人姓名",
+        "601cc91d2daa3dd3bdb4008c",    "P.实际完成时间",
+        "601cc91d2daa3dd3bdb40091",      "A.业务类别",
+        "601cc7102745a7c6e1648b20", "X1.基因合成载体产能",
+        "6057f3ede2cbb21aa9fda492",        "延期原因",
+        "601cc91d2daa3dd3bdb40090",    "S.客户联系信息",
+        "601cc91d2daa3dd3bdb40092",   "S.预付款任务ID",
+        "601cc91d2daa3dd3bdb40080",        "S.折扣",
+        "605188190ec747e2eac35b9f",        "S.促销",
+        "601cc91d2daa3dd3bdb40084",     "Sp.是否退单",
+        "601cc91d2daa3dd3bdb4006f",      "A.变动金额",
+        "601cc91d2daa3dd3bdb40070",       "F.已开票",
+        "601cc91d2daa3dd3bdb40071",       "F.未回款",
+        "609a50f38be477958c759a75", "Ag.整体实验固定费用",
+        "609a51283b6100d8db6a8a69",   "Ag.整体实验售价",
+        "601cc91d2daa3dd3bdb4007f",      "W.出库日期",
+        "601cc7102745a7c6e1648acb",      "b4合同金额",
+        "601cc7102745a7c6e1648aa6",      "a4联系方式",
+        "601cc7102745a7c6e1648aa0",      "a4客户姓名",
+        "601cc7102745a7c6e1648aa1",      "a4客户单位",
+        "601cc7102745a7c6e1648aa4",      "a4销售姓名",
+        "601cc7102745a7c6e1648aa2",      "a4新增客户",
+        "601cc7102745a7c6e1648aa5",      "a4销售区域",
+        "601cc7102745a7c6e1648ab0",      "b4签订日期",
+        "601cc7102745a7c6e1648aae",      "b4变动金额",
+        "601cc7102745a7c6e1648ab2",     "b4已开票金额",
+        "601cc7102745a7c6e1648ab3",      "b4未回款额",
+        "601cc7102745a7c6e1648ab4",      "c6外包售价",
+        "601cc7102745a7c6e1648ab5",      "c6外包成本",
+        "601cc7102745a7c6e1648ac9",      "e4发货日期",
+        "601cc7102745a7c6e1648aa9",        "a4折扣",
+        "601cc7102745a7c6e1648aca",      "f5结题规范",
+        "601cc7102745a7c6e1648ad2",       "f5总完成",
+        "601cc7102745a7c6e1648aaf",      "b4业务类别",
+        "601cc7102745a7c6e1648aad",      "b4消费合同",
+        "60acbccfb8bb4bc40bd67660",   "MD.包装细胞盘数",
+        "601cc91d2daa3dd3bdb4007d",     "Ag.外包成本"
+)
+
+#tb自定义字段整体变化了一次，过了几天又便会原样，这里记录一下
+cf_new2 <- 
         tibble::tribble(
                 ~customfildID,         ~name,
                 "617176b413ea411257b7f2e1",      "b4消费金额",
@@ -203,7 +288,9 @@ cf_new <-
         ) %>% 
         as.data.frame()
 
+db <- DBI::dbConnect(SQLite(),dbname='/Users/zhuomingx/Desktop/Rbio/std_report_v3/data/testDB.db')
 dbWriteTable(db,'cf_phrase',cf_new,overwrite=T)
+dbWriteTable(db,'cf_phrase2',cf_new2,overwrite=T)
 dbDisconnect(db)
 
 
