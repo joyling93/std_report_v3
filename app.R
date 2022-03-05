@@ -115,7 +115,7 @@ ui <- dashboardPage(
                                                 actionButton('archive_auto',label='点此开始自动归档'),
                                                 hr(),
                                                 selectInput('archieve_type','选择归档信息种类',
-                                                            c('TB任务','实验记录（信息）表','TB任务2020','成本和产值统计辅助表','台账','企管校正表')),
+                                                            c('TB任务','实验记录（信息）表','TB任务2020','成本和产值统计辅助表','台账','企管校正表','质粒入库信息统计表')),
                                                 fileInput('db_file',
                                                           label = '上传excel文件',
                                                           multiple = T),
@@ -143,7 +143,7 @@ ui <- dashboardPage(
                                         
                                         sidebarPanel(
                                                 selectInput('selected_db','选择统计种类',
-                                                            c('生产部相关统计','销售部相关统计','成本和产值统计','实验记录表','销售提成','项目管理数据')),
+                                                            c('生产部相关统计','销售部相关统计','成本和产值统计','实验记录表','销售提成','项目管理数据','质粒入库信息统计表')),
                                                 dateInput('time_span',label = '选择统计日期',value = today()),
                                                 selectInput('period_type','选择统计种类',
                                                             c('周度','月度','年度'),selected='周度'),
@@ -487,6 +487,24 @@ server <- function(input, output) {
                                 },
                                 content=function(file){
                                         write.xlsx(output_list, file)
+                                }
+                        )
+                }else if(input$selected_db=='质粒入库信息统计表'){
+                        dt <- db_clean('vec_db')
+                        output$DT1 <-  DT::renderDT({
+                                #req(credentials()$user_auth)
+                                dt %>% 
+                                        slice_head(n=5)
+                        },
+                        extensions = c('Buttons','Responsive','KeyTable'),
+                        options = DT_options_list)
+                        
+                        output$download_stat <- downloadHandler(
+                                filename=function(){
+                                        y <- paste0('统计数据.xlsx')
+                                },
+                                content=function(file){
+                                        write.xlsx(dt, file)
                                 }
                         )
                 }else{

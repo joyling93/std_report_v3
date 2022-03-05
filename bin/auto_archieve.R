@@ -43,6 +43,10 @@ auto_archieve <- function(){
         
         dt_new <- 
                 dt_new %>% 
+                mutate(
+                        #系统抽风修改暂时单独修改下CD.产能类型的编号
+                        CD.产能类型 = `617176b313ea411257b7e40f`
+                )%>%
                 select(!matches('^\\d')) %>% #去除没有转化名称的customfields列
                 mutate(
                        CD.产能类型 = map_chr(CD.产能类型,str_replace_all,pattern='拼装和酶切连接，LR载体',

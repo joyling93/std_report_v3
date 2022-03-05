@@ -17,7 +17,8 @@ archive_files <- function(type,filepath,db){
                             '实验记录（信息）表' = record_db(filepath,db),
                             '成本和产值统计辅助表' = supp_db(filepath,db),
                             '台账' = ledger_db(filepath,db),
-                            '企管校正表' = adjust_db(filepath,db)
+                            '企管校正表' = adjust_db(filepath,db),
+                            '质粒入库信息统计表' = vec_db(filepath,db)
         )
         return(out_info)
 }
@@ -174,6 +175,7 @@ function(filepath,db){
 ledger_db <- 
 function(filepath,db){
         file_path <- filepath[str_detect(filepath,'\\.xlsx')]
+        print(file_path)
         ledger_raw <- openxlsx::read.xlsx(filepath,detectDates=T,sheet='原始数据-台账') %>% 
                 mutate(
                         开票日期=if_else(str_detect(开票日期,'0000/0/0'),NA_character_,开票日期),
@@ -195,4 +197,14 @@ adjust_db <-
                 out_info <- '归档成功'
         }
 
-
+vec_db <- 
+        function(filepath,db){
+                file_path <- filepath[str_detect(filepath,'\\.xlsx|\\.xls')]
+                
+                dt_new <- purrr::map_dfr(file_path,function(x){
+                        dt <- readxl::read_xlsx(x,col_types = "text")
+                })
+                dbWriteTable(db,'vec_db',dt_new,overwrite=T)
+                dbDisconnect(db)
+                out_info <- '归档成功'
+        }

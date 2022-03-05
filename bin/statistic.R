@@ -1,6 +1,6 @@
-# period_type <- '月度'
-# time_span <- '2021-06-07 18:00:00 CST'
-# db_type <- 'product_sec'
+ period_type <- '月度'
+ time_span <- '2021-010-07 18:00:00 CST'
+ db_type <- 'product_sec'
 # DBI::dbDisconnect(db)
 # load('debug/test/test_env.Rds')
 # save.image('debug/test/test_env.Rds')
@@ -162,6 +162,10 @@ db_clean <- function(db_type,tag='无'){
                 dt2 <- data_extraction(dt,'tb_c_ledger')
         }else if(db_type=='admin_data_cal'){
                 dt2 <- data_extraction(dt,'tb_c_ledger')
+        }else if(db_type=='vec_db'){
+                db <- DBI::dbConnect(SQLite(),dbname='./data/testDB.db')
+                dt2 <- dbReadTable(db,'vec_db')
+                DBI::dbDisconnect(db)
         }
         else{
                 dt2 <- dt %>% 
