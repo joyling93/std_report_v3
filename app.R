@@ -1,11 +1,5 @@
 options(shiny.maxRequestSize = 10000*1024^2)
 
-source("./bin/report_generate.R",encoding = 'UTF8')
-source('./bin/archive.R',encoding = 'UTF8')
-source('./bin/input_test.R',encoding = 'UTF8')
-source('./bin/statistic.R',encoding = 'UTF8')
-source('./bin/tb_query.R',encoding = 'UTF8')
-source('./bin/utility.R',encoding = 'UTF8')
 #source('./bin/sales_commission_cal.R',encoding = 'UTF8')
 library(shiny)
 library(shinydashboard)
@@ -28,7 +22,12 @@ library(openxlsx)
 library(readr)
 library(forcats)
 library(tibble)
-
+source("./bin/report_generate.R",encoding = 'UTF8')
+source('./bin/archive.R',encoding = 'UTF8')
+source('./bin/input_test.R',encoding = 'UTF8')
+source('./bin/statistic.R',encoding = 'UTF8')
+source('./bin/tb_query.R',encoding = 'UTF8')
+source('./bin/utility.R',encoding = 'UTF8')
 
 temp_dir <- tempdir()
 

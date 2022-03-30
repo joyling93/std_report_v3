@@ -179,14 +179,12 @@ db_clean <- function(db_type,tag='无'){
         return(dt2)
 }
 
-#2021调休表
+#调休表
+dt_sp<-read.csv('data/sp_days.csv',header = F)%>%
+        deframe()
 special_days <- list(
-        'holidays'=lubridate::ymd(
-                c("2021年1月1日", "2021年1月2日", "2021年1月3日", "2021年2月11日", "2021年2月12日", "2021年2月13日", "2021年2月14日", "2021年2月15日", "2021年2月16日", "2021年2月17日", "2021年4月3日", "2021年4月4日", "2021年4月5日", "2021年5月1日", "2021年5月2日", "2021年5月3日", "2021年5月4日", "2021年5月5日", "2021年6月12日", "2021年6月13日", "2021年6月14日", "2021年9月19日", "2021年9月20日", "2021年9月21日", "2021年10月1日", "2021年10月2日", "2021年10月3日", "2021年10月4日", "2021年10月5日", "2021年10月6日", "2021年10月7日")
-        ),#法定假日
-        'switch.days'=lubridate::ymd(
-                c("2021年2月7日", "2021年2月20日", "2021年4月25日", "2021年5月8日", "2021年9月18日", "2021年9月26日", "2021年10月9日")
-        )#工作日调休
+        holidays= lubridate::ymd(dt_sp[names(dt_sp)=="holidays"]),
+        switch.days=lubridate::ymd(dt_sp[names(dt_sp)=="switch.days"])
 )
 
 # 计算开始日期x到结束日期y经历的工作日
@@ -251,7 +249,7 @@ delay_cal <- function(dt,time_span,period_type){
                         delay_ratio = (预期周期-实际周期)/预期周期,
                         project_delay = if_else(delay_ratio<0&CD.产能类型!='基因合成载体'&截止时间<Su.实验实际完成日期
                                                 ,1,0),#标记延期项目
-                        filter.tag = if_else(delay_ratio<0&(str_detect(CD.产能类型,'基因合成载体')|截止时间>Su.实验实际完成日期)
+                        filter.tag = if_else(project_delay==1&(str_detect(CD.产能类型,'基因合成载体')|截止时间>Su.实验实际完成日期)
                                              ,1,0),#标记在计算延期时需要去除的项
                         distribution_delay = if_else((开始时间-Su.实验实际开始日期)/ddays(1)>1,1,0),
                         CD.组成产能 = as.character(CD.组成产能),
