@@ -1,6 +1,6 @@
- period_type <- '月度'
- time_span <- '2021-010-07 18:00:00 CST'
- db_type <- 'product_sec'
+# period_type <- '月度'
+# time_span <- ymd_hms('2021-10-07 18:00:00 CST')
+# db_type <- 'product_sec'
 # DBI::dbDisconnect(db)
 # load('debug/test/test_env.Rds')
 # save.image('debug/test/test_env.Rds')
@@ -95,8 +95,8 @@ db_clean <- function(db_type,tag='无'){
                         ) %>% 
                         left_join(dt_extra) %>% 
                         mutate(
-                                #across(matches('时间|日期'),ymd_hms),
-                                #across(contains('姓名'),as.factor),
+                                across(matches('时间|日期'),ymd_hms),
+                                across(contains('姓名'),as.factor),
                                 across(ends_with('产能'),as.numeric),
                                 across(contains('周期'),as.numeric),
                                 是否重复=if_else(
@@ -385,7 +385,8 @@ delay_cal <- function(dt,time_span,period_type){
 seal_cal <- function(dt,time_span,period_type,tag){
         time_filter <- switch(period_type,
                               '周度' = function(x){
-                                      as.character(cut(x,'week',start.on.monday=F))
+                                      ymd(cut(x+ddays(1),'week',start.on.monday=F))-ddays(1)
+                                      #延后实际日期使周数从周五开始
                               },
                               '月度' = month,
                               '年度' = year)
