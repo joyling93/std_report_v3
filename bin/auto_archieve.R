@@ -1,6 +1,7 @@
 #自动归档2021tb新流程任务,任务ID=='fw-1287'
 auto_archieve <- function(){
-        tql.query <- "_projectId=5fd6c35b083cba2bde5df319 AND isArchived = false"
+        #tql.query <- "_projectId=5fd6c35b083cba2bde5df319 AND isArchived = false"
+        tql.query <- "_projectId=5fd6c35b083cba2bde5df319 AND accomplished > \"2021-01-01T00:00:51.998Z\" AND isArchived = false"
         uniqueId.prefix <- "fw-"
         dt <- tql_query(tql.query,uniqueId.prefix)
         
