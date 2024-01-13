@@ -1,7 +1,7 @@
 #自动归档2021tb新流程任务,任务ID=='fw-1287'
 auto_archieve <- function(){
         #tql.query <- "_projectId=5fd6c35b083cba2bde5df319 AND isArchived = false"
-        tql.query <- "_projectId=5fd6c35b083cba2bde5df319 AND accomplished > \"2021-06-01T00:00:51.998Z\" AND isArchived = false"
+        tql.query <- "isArchived = false AND accomplished >= 2022-01-01T00:00:00+08:00"
         uniqueId.prefix <- "fw-"
         dt <- tql_query(tql.query,uniqueId.prefix)
         
@@ -11,10 +11,10 @@ auto_archieve <- function(){
                            标题=content,
                            截止时间=dueDate,
                            开始时间=startDate,
-                           任务类型=templateId,
+                           任务类型=sfcId,
                            任务ID=uniqueId,
-                           父任务.ObjectId=parentTaskId,
-                           任务.ObjectId=taskId) %>% 
+                           父任务.ObjectId=ancestorIds,
+                           任务.ObjectId=id) %>% 
                 #将任务类型id转化为具体任务类型名称
                 dplyr::filter(任务类型%in%c('5fd9bae5f0f303707a50a6f5',
                                         '5fd9b4421e0cc70378ce5d94',
@@ -46,7 +46,7 @@ auto_archieve <- function(){
                 dt_new %>% 
                 mutate(
                         #系统抽风修改暂时单独修改下CD.产能类型的编号
-                        CD.产能类型 = `617176b313ea411257b7e40f`
+                        CD.产能类型 = `6171772e13ea411257cfae47`
                 )%>%
                 select(!matches('^\\d')) %>% #去除没有转化名称的customfields列
                 mutate(

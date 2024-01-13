@@ -328,10 +328,11 @@ server <- function(input, output) {
                         source('bin/auto_archieve2.R')
                         progress$set('新流程归档中。。。',value=0.5)
                         info1 <- auto_archieve()
-                        progress$set('2020旧流程归档中。。。',value=0.75)
-                        info2 <- auto_archieve2()
+                        progress$set('新流程归档中。。。',value=0.75)
+                        #info2 <- auto_archieve2()
                         progress$set('归档完成',value=1)
-                        info <- paste(info1,info2,sep='；')
+                        #info <- paste(info1,info2,sep='；')
+                        info <- info1
                 })
         })
         
